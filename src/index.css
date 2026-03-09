@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes slide-in {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.animate-slide-in {
+  animation: slide-in 0.25s ease-out forwards;
+}
+
+@layer base {
+  :root {
+    --color-cream: #f5f0e8;
+    --color-slate: #1a1a2e;
+  }
+
+  body {
+    @apply bg-[#f5f0e8] text-[#1a1a2e];
+    font-family: "Sora", sans-serif;
+  }
+}
