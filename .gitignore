@@ -21,3 +21,7 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Claude
+.claude/settings.local.json
+.claude/todos
