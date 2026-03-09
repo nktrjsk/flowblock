@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.6 (2026-03-08)
+> **Verze dokumentu:** 0.7 (2026-03-09)
 > **Status:** Návrh MVP
 
 ---
@@ -152,9 +152,61 @@ Open-source webová aplikace pro plánování času, inspirovaná [Akiflow](http
 
 ## 5. UI Layout
 
+### 5.1 Dva režimy zobrazení
+
+Appka má dva hlavní pohledy, přepínatelné tlačítky v hlavní liště:
+
+**Dashboard (výchozí)** — zaměřený na "co teď", vertikální stack informačních bloků s kalendářovými sloupci pro plánování po straně.
+
+**Týdenní pohled** — plný týdenní kalendář pro hromadné plánování a přehled celého týdne.
+
+### 5.2 Dashboard (výchozí pohled)
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  [Dnes]  [Týden]                           [⚙]  [Sync]  │
+├──────────────────────────────────┬───────────────────────┤
+│                                  │ DNES (Po) │ ZÍT (Út) │
+│  ┌──────────────────────────┐    │ ┌───────┐ │ ┌──────┐ │
+│  │  TEĎ: Kódování           │    │ │██ Kód │ │ │── Sch│ │
+│  │  ██████████░░░  zbývá 45m │    │ │       │ │ │      │ │
+│  └──────────────────────────┘    │ │── Sch.│ │ │██ Re │ │
+│                                  │ │       │ │ │      │ │
+│  INBOX (3)                       │ │██ Mail│ │ │      │ │
+│  ☐ Zavolat na pojišťovnu   ⚡   │ │       │ │ │      │ │
+│  ☐ Napsat report                │ └───────┘ │ └──────┘ │
+│  ☐ Koupit mléko            ☁   │           │          │
+│  + Přidat úkol                  │           │          │
+│                                  │           │          │
+│  NADCHÁZEJÍCÍ                    │           │          │
+│  14:00 Schůzka s Petrem         │           │          │
+│  16:00 Review PR                │           │          │
+│                                  │           │          │
+│  PROJEKTY                        │           │          │
+│  ● FlowBlock (3 úkoly)         │           │          │
+│  ● Diplomka (1 úkol)  ↑        │           │          │
+│                                  │           │          │
+│  ── Done ──                      │           │          │
+├──────────────────────────────────┴───────────────────────┤
+│  ░░░░░░░░░▓▓▓▓▓░░░░  Dnes: 3h volných                   │
+└──────────────────────────────────────────────────────────┘
+```
+
+Dashboard je **vertikální stack** s fixní hierarchií (shora dolů = od nejdůležitějšího):
+
+1. **"Co teď"** — aktuální nebo příští time-block s progress barem a zbývajícím časem. Pokud nic neběží: "Žádný blok — volný čas" (nebo smart suggestion, viz sekce 13).
+2. **Inbox** — nezaplánované úkoly. Úkoly s `waiting_for` ztlumené, draining úkoly s ⚡ indikátorem, lite úkoly s ☁. Drag & drop do kalendářových sloupců vpravo.
+3. **Nadcházející** — zbytek dnešního plánu jako jednoduchý timeline (ne kalendářový grid).
+4. **Projekty** — sbalitelné skupiny s rotační váhou; ↑ indikátor u projektů, které vyplouvají (viz sekce 9).
+5. **Done** — sbalená sekce dokončených úkolů.
+
+**Kalendářové sloupce (vpravo):** Dva úzké sloupce — dnešek a zítra. Slouží primárně jako **drop target** pro plánování. Plně interaktivní (drag, resize, vše). Navigace šipkami posouvá o den. Budoucí option: přepínání kalendářových sloupců vlevo/vpravo.
+
+### 5.3 Týdenní pohled (sekundární)
+
 ```
 ┌─────────────────────────────────────────────────┐
-│  [Today]  [◄ Week ►]              [⚙]  [Sync]  │
+│  [Dnes]  [◄ Týden ►]              [⚙]  [Sync]  │
 ├────────────┬────────────────────────────────────┤
 │            │  Po    Út    St    Čt    Pá        │
 │  INBOX     │  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐    │
@@ -174,24 +226,19 @@ Open-source webová aplikace pro plánování času, inspirovaná [Akiflow](http
 └─────────────────────────────────────────────────┘
 ```
 
-### 5.1 Komponenty
+Plný týdenní kalendář s inboxem vlevo. Určen pro hromadné plánování a přehled celého týdne.
 
-- **Inbox panel (vlevo):** Jednoduchý seznam úkolů, `+ Add task` tlačítko; naplánované úkoly zobrazeny vybledle se separátorem; sekce Done je ve výchozím stavu sbalená, rozbalitelná kliknutím na hlavičku, zobrazuje dokončené úkoly seřazené od nejnovějšího
-- **Kalendářový pohled (vpravo):** Týdenní pohled s hodinovou mřížkou (dělená na čtvrthodiny tečkovanou linií), drop target pro drag & drop
-- **Kapacitní lišta (dole):** Vizuální indikátor volného vs. zaplánovaného času pro aktuální den; barva se mění zelená → amber → červená podle zaplnění
-- **Hlavní lišta (nahoře):** Navigace po týdnech, tlačítko Today, nastavení, sync status
-
-### 5.2 Estetika
+### 5.4 Estetika
 
 Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným do digitálu:
 
 - Pozadí: krémová `#f5f0e8`
 - Akcenty: tmavá břidlice `#1a1a2e`
 - Typografie: Sora (UI) + Instrument Serif italic (brand)
-- Time-blocky: zbarveny dle priority (viz 5.3)
+- Time-blocky: zbarveny dle priority (viz 5.5)
 - Externí CalDAV události: přerušovaný border, italic, vizuálně odlišené
 
-### 5.3 Barvy time-bloků dle priority
+### 5.5 Barvy time-bloků dle priority
 
 | Priorita | Pozadí | Border | Text |
 |---|---|---|---|
@@ -201,9 +248,9 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 | `none` | `#f1f5f9` | `#94a3b8` | `#334155` |
 | external | `#f5f0e8` | `#1a1a2e55` dashed | `#1a1a2e66` |
 
-### 5.4 Interakce
+### 5.6 Interakce
 
-- **Drag tasku z inboxu** do kalendáře → vytvoří TimeBlock + změní status úkolu na `planned`
+- **Drag tasku z inboxu** do kalendářového sloupce → vytvoří TimeBlock + změní status úkolu na `planned`
 - **Drag time-blocku v kalendáři** → přesun na jiný slot/den; drag funguje z celé plochy bloku
   - Při dragu se zobrazí **ghost** (poloprůhledný dashed obrys) ukazující cílový slot
   - Vedle ghosta se zobrazí **tooltip s přesným časem** (`HH:MM – HH:MM`); tooltip se přepne na druhou stranu, pokud je blok ve dvou pravých sloupcích
@@ -235,8 +282,9 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 
 ### Vrstva 1: Datový model + základní UI
 - [ ] Evolu schéma (Tasks, TimeBlocks)
-- [ ] Inbox — zobrazení, přidání, editace, smazání úkolu
-- [ ] Týdenní kalendářový pohled (zatím bez CalDAV, jen lokální data)
+- [ ] Dashboard — "Co teď" blok, inbox, nadcházející, projekty, kapacitní lišta
+- [ ] Kalendářové sloupce (dnes + zítra) jako drop target
+- [ ] Týdenní pohled (sekundární, přepínatelný)
 - [ ] Drag tasku z inboxu do kalendáře (ghost + tooltip)
 - [ ] Drag time-blocku v kalendáři (přesun slot/den)
 - [ ] Drag time-blocku zpět do inboxu
@@ -273,6 +321,7 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 - **Review mode** (viz sekce 14)
 - **Plugin systém** (viz sekce 15)
 - **Lokální bridge API** (viz sekce 16)
+- **Natural language input** (viz sekce 17)
 - Štítky / filtry
 - Integrace s dalšími službami (email, Slack...)
 - Denní / měsíční pohled
@@ -484,3 +533,50 @@ Lokální bridge — lehký proces běžící na uživatelově stroji, který vy
 ### Poznámka
 
 Toto vyžaduje komponentu mimo browser (Node.js server, Tauri sidecar, nebo podobné). Scope a technologie budou upřesněny později.
+
+---
+
+## 17. Budoucí feature: Natural language input
+
+### Problém
+
+Vytváření úkolu vyžaduje vyplnění několika polí (název, čas, priorita, energy...). Pro ADHD mozek je každé rozhodování navíc bariéra. Ideálně by stačilo napsat jednu větu a appka by z ní vytáhla všechny atributy.
+
+### Navrhované řešení
+
+Jednořádkový input (v inboxu nebo command baru) s parsováním přirozeného jazyka. Nevyžaduje AI — stačí jednoduchý regex/pattern matcher.
+
+### Syntaxe (návrh)
+
+| Vzor | Atribut | Příklad |
+|---|---|---|
+| prostý text | `title` | `Zavolat doktorovi` |
+| `v HH:MM` nebo `v HHh` | `start` (dnes) | `v 14:00`, `v 20h` |
+| `zítra`, `ve středu`, `za 3 dny` | `due_date` / den pro time-block | `zítra v 10h` |
+| `XXmin` nebo `XXh` | délka time-blocku | `30min`, `1.5h` |
+| `p1` / `p2` / `p3` | `priority` (high/medium/low) | `p1` |
+| `!draining` / `!lite` | `energy` | `!draining` |
+| `@Jméno` | `waiting_for` | `@Jana` |
+
+### Příklady
+
+```
+K doktorovi v 20h p1
+→ title: "K doktorovi", start: dnes 20:00, priority: high
+
+Napsat report zítra 2h p2
+→ title: "Napsat report", date: zítra, duration: 2h, priority: medium
+
+Zavolat na pojišťovnu !draining 15min
+→ title: "Zavolat na pojišťovnu", energy: draining, duration: 15min
+
+Čekat na fakturu @Petr
+→ title: "Čekat na fakturu", waiting_for: "Petr"
+```
+
+### Poznámky
+
+- Nerozpoznané části se stávají součástí `title`
+- Parser by měl být tolerantní k pořadí — atributy mohou být kdekoliv ve větě
+- Při parsování se zobrazí **preview** — uživatel vidí, jak appka rozuměla vstupu, než potvrdí
+- Lokalizace: parser by měl rozumět českým i anglickým klíčovým slovům (`zítra` i `tomorrow`)
