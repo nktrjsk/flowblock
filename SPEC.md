@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.7 (2026-03-09)
+> **Verze dokumentu:** 0.8 (2026-03-09)
 > **Status:** Návrh MVP
 
 ---
@@ -262,6 +262,21 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 - **Drop target grid:** 15minutový snap; čtvrthodinové linie vyznačeny tečkovaně v pozadí
 - **Checkbox** → přesun do Done se satisfying toastem
 - **+ Přidat úkol** → inline input přímo v inboxu; Enter uloží, Escape zruší
+
+### 5.7 Kapacitní lišty (per-day)
+
+Každý den v týdenním pohledu i dashboard sloupcích má vlastní dvojici lišt
+umístěnou v hlavičce sloupce (nad kalendářovým gridem):
+
+- **Časová lišta** — ikona `Clock` (Lucide), barva zelená → amber → červená
+  podle poměru zaplánovaných hodin k denní kapacitě (default 8h).
+  Tooltip při hoveru: `4h / 8h`.
+- **Energetická lišta** — ikona `Zap` (Lucide), fialová škála
+  (světlá → sytá → tmavá). Tenčí než časová lišta — energie je sekundární
+  informace. Tooltip při hoveru: slovní popis (`Energie: nízká / střední / vysoká`).
+- Lišty jsou vždy viditelné, nekollapsují.
+- Energetická lišta je zatím placeholder (zobrazuje mock data), plná funkčnost
+  závisí na implementaci energy feature (sekce 11).
 
 ---
 
