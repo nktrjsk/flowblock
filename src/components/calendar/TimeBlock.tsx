@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { flushSync } from "react-dom";
 import { GripVertical } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
@@ -50,21 +51,31 @@ export default function TimeBlock({
 }: TimeBlockComponentProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
+  const [liveResize, setLiveResize] = useState<{
+    startMinutes: number;
+    endMinutes: number;
+  } | null>(null);
   const { update } = useEvolu();
   const resizingRef = useRef<{
     edge: ResizeEdge;
     startY: number;
     originalStart: number;
     originalEnd: number;
+    currentStart: number;
+    currentEnd: number;
   } | null>(null);
   const isDragging = useRef(false);
 
   const prio = (priority ?? "none") as Priority;
   const colors = PRIORITY_COLORS[prio] ?? PRIORITY_COLORS.none;
 
-  const top = (startMinutes / 60) * HOUR_HEIGHT_PX;
-  const height = Math.max((durationMinutes / 60) * HOUR_HEIGHT_PX, 12);
-  const endMinutes = startMinutes + durationMinutes;
+  const displayStart = liveResize?.startMinutes ?? startMinutes;
+  const displayEnd = liveResize?.endMinutes ?? (startMinutes + durationMinutes);
+  const displayDuration = displayEnd - displayStart;
+
+  const top = (displayStart / 60) * HOUR_HEIGHT_PX;
+  const height = Math.max((displayDuration / 60) * HOUR_HEIGHT_PX, 12);
+  const endMinutes = displayEnd;
 
   function handleDragStart(e: React.DragEvent) {
     if (resizingRef.current) {
@@ -94,11 +105,14 @@ export default function TimeBlock({
   function handleResizeMouseDown(e: React.MouseEvent, edge: ResizeEdge) {
     e.preventDefault();
     e.stopPropagation();
+    const originalEnd = startMinutes + durationMinutes;
     resizingRef.current = {
       edge,
       startY: e.clientY,
       originalStart: startMinutes,
-      originalEnd: endMinutes,
+      originalEnd,
+      currentStart: startMinutes,
+      currentEnd: originalEnd,
     };
 
     function onMouseMove(ev: MouseEvent) {
@@ -108,24 +122,33 @@ export default function TimeBlock({
       const deltaMinutes = Math.round((deltaY / HOUR_HEIGHT_PX) * 60 / SNAP_MINUTES) * SNAP_MINUTES;
 
       if (edge === "bottom") {
-        const newEnd = Math.max(originalStart + SNAP_MINUTES, originalEnd + deltaMinutes);
-        const newEndClamped = Math.min(newEnd, 24 * 60);
-        update("timeBlock", {
-          id,
-          end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, newEndClamped)),
-        });
+        const newEnd = Math.min(Math.max(originalStart + SNAP_MINUTES, originalEnd + deltaMinutes), 24 * 60);
+        resizingRef.current.currentEnd = newEnd;
+        flushSync(() => setLiveResize({ startMinutes: originalStart, endMinutes: newEnd }));
       } else {
-        const newStart = Math.min(originalEnd - SNAP_MINUTES, originalStart + deltaMinutes);
-        const newStartClamped = Math.max(0, newStart);
-        update("timeBlock", {
-          id,
-          start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, newStartClamped)),
-        });
+        const newStart = Math.max(0, Math.min(originalEnd - SNAP_MINUTES, originalStart + deltaMinutes));
+        resizingRef.current.currentStart = newStart;
+        flushSync(() => setLiveResize({ startMinutes: newStart, endMinutes: originalEnd }));
       }
     }
 
     function onMouseUp() {
+      if (resizingRef.current) {
+        const { edge, currentStart, currentEnd } = resizingRef.current;
+        if (edge === "bottom") {
+          update("timeBlock", {
+            id,
+            end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, currentEnd)),
+          });
+        } else {
+          update("timeBlock", {
+            id,
+            start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, currentStart)),
+          });
+        }
+      }
       resizingRef.current = null;
+      setLiveResize(null);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     }
@@ -183,7 +206,7 @@ export default function TimeBlock({
       {/* Content */}
       <div className="h-full flex flex-col justify-start pt-0.5 px-1.5 overflow-hidden">
         <span className="text-[10px] opacity-60 leading-none">
-          {formatTime(startMinutes)}–{formatTime(endMinutes)}
+          {formatTime(displayStart)}–{formatTime(endMinutes)}
         </span>
         {editing ? (
           <input
