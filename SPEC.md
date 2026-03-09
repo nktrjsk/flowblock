@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.9 (2026-03-09)
+> **Verze dokumentu:** 0.10 (2026-03-09)
 > **Status:** Návrh MVP
 
 ---
@@ -303,6 +303,27 @@ bez uložení.
 
 **Co mobilní verze neobsahuje:** týdenní pohled, drag & drop plánování,
 resize time-bloků, dashboard s projekty.
+
+### 5.9 Nastavení
+
+**Desktop:** ikona `Settings` (Lucide) v pravém horním rohu hlavní lišty.
+Klik otevře modal.
+
+**Mobil:** stejná ikona `Settings` v pravém horním rohu topbaru.
+Klik otevře modal. Konzistentní s desktopem.
+
+Nastavení se otevírá výjimečně — není součástí každodenního flow,
+proto nezabírá místo v bottom tab baru.
+
+#### **Obsah modalu**
+
+*Identita (Evolu)*
+- Zobrazení aktuálního Owner ID (zkrácený hash)
+- Export owner key (tlačítko → stáhne soubor nebo zobrazí key k zkopírování)
+- Import owner key (tlačítko → file picker nebo paste input)
+- Varování při importu: "Importování jiného klíče přepíše lokální identitu"
+
+Další sekce (CalDAV, denní kapacita, vzhled...) budou doplněny postupně.
 
 ---
 
