@@ -29,7 +29,7 @@ export default function Header({
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <header className="h-12 flex items-center px-4 gap-3 border-b border-[#1a1a2e]/10 bg-[#f5f0e8] shrink-0">
+    <header className="h-14 flex items-center px-4 gap-3 border-b border-[#1a1a2e]/10 bg-[#f5f0e8] shrink-0">
       <h1 className="font-serif italic text-xl text-[#1a1a2e] mr-2">
         FlowBlock
       </h1>

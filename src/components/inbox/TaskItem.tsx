@@ -53,17 +53,17 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
     <div
       draggable
       onDragStart={handleDragStart}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#1a1a2e]/5 group cursor-grab active:cursor-grabbing ${waitingFor != null ? "opacity-60" : ""}`}
+      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-[#1a1a2e]/5 group cursor-grab active:cursor-grabbing ${waitingFor != null ? "opacity-60" : ""}`}
     >
       {/* Priority dot */}
       <span
-        className="w-2 h-2 rounded-full shrink-0"
+        className="w-2.5 h-2.5 rounded-full shrink-0"
         style={{ backgroundColor: colors.border }}
       />
       {/* Checkbox */}
       <button
         onClick={handleCheck}
-        className="w-4 h-4 shrink-0 rounded border border-[#1a1a2e]/30 flex items-center justify-center hover:border-[#1a1a2e]/60 transition-colors"
+        className="w-5 h-5 shrink-0 rounded border border-[#1a1a2e]/30 flex items-center justify-center hover:border-[#1a1a2e]/60 transition-colors"
       >
         {status === "done" && (
           <svg viewBox="0 0 10 10" className="w-3 h-3" fill="none">

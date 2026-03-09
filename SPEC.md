@@ -262,6 +262,10 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 - **Drop target grid:** 15minutový snap; čtvrthodinové linie vyznačeny tečkovaně v pozadí
 - **Checkbox** → přesun do Done se satisfying toastem
 - **+ Přidat úkol** → inline input přímo v inboxu; Enter uloží, Escape zruší
+- **Vodící linky kalendářového gridu:** Hodinové linky výrazné (solid,
+  dobře viditelné). Půlhodinové linky jemné (světlejší, tenčí). Čtvrthodinové
+  linky nejjemnější nebo zcela bez linky — slouží jen jako snap target,
+  nejsou vizuálně rušivé.
 
 ### 5.7 Kapacitní lišty (per-day)
 
@@ -367,7 +371,6 @@ Další sekce (CalDAV, denní kapacita, vzhled...) budou doplněny postupně.
 - [ ] Bidirectional sync s conflict resolution (etag)
 
 ### Vrstva 4: ADHD vylepšení
-- [ ] Kapacitní lišta (volný vs. zaplánovaný čas, barevná škála)
 - [ ] Varování při přeplánování dne
 - [ ] Tiché přesunutí nesplněných úkolů na další den
 - [ ] Animace/zvuky při splnění

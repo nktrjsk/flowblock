@@ -2,7 +2,6 @@ import { Suspense, useState } from "react";
 import { EvoluProvider } from "@evolu/react";
 import { evolu } from "./db/evolu";
 import Header from "./components/layout/Header";
-import CapacityBar from "./components/layout/CapacityBar";
 import SidePanel from "./components/layout/SidePanel";
 import WeekCalendar from "./components/calendar/WeekCalendar";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
@@ -59,7 +58,6 @@ function AppContent() {
           <WeekCalendar weekStart={weekStart} />
         </div>
       )}
-      <CapacityBar />
     </div>
   );
 }

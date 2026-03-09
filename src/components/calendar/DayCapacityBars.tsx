@@ -27,11 +27,11 @@ export default function DayCapacityBars({ plannedMinutes }: DayCapacityBarsProps
   const energyTooltip = "Energie: nízká";
 
   return (
-    <div className="flex flex-col gap-0.5 px-2 pb-1.5 w-full">
+    <div className="flex flex-col gap-1.5 px-2 pb-2 w-full">
       {/* Time bar */}
-      <div className="flex items-center gap-1" title={timeTooltip}>
-        <Clock size={9} className="text-[#1a1a2e]/35 shrink-0" />
-        <div className="flex-1 h-1.5 rounded-full bg-[#1a1a2e]/10 overflow-hidden">
+      <div className="flex items-center gap-1.5" title={timeTooltip}>
+        <Clock size={12} className="text-[#1a1a2e]/35 shrink-0" />
+        <div className="flex-1 h-2.5 rounded-full bg-[#1a1a2e]/10 overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{
@@ -42,9 +42,9 @@ export default function DayCapacityBars({ plannedMinutes }: DayCapacityBarsProps
         </div>
       </div>
       {/* Energy bar (placeholder) */}
-      <div className="flex items-center gap-1" title={energyTooltip}>
-        <Zap size={9} className="text-[#1a1a2e]/35 shrink-0" />
-        <div className="flex-1 h-1 rounded-full bg-[#1a1a2e]/10 overflow-hidden">
+      <div className="flex items-center gap-1.5" title={energyTooltip}>
+        <Zap size={12} className="text-[#1a1a2e]/35 shrink-0" />
+        <div className="flex-1 h-2 rounded-full bg-[#1a1a2e]/10 overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{

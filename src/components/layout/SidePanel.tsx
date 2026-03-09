@@ -72,7 +72,7 @@ export default function SidePanel() {
 
   return (
     <div
-      className={`w-80 flex flex-col overflow-y-auto border-r border-[#1a1a2e]/10 shrink-0 transition-colors ${dropHover ? "bg-green-50 border-green-300" : ""}`}
+      className={`w-96 flex flex-col overflow-y-auto border-r border-[#1a1a2e]/10 shrink-0 transition-colors ${dropHover ? "bg-green-50 border-green-300" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -80,7 +80,7 @@ export default function SidePanel() {
       <NowBlock />
 
       <div className="mx-3 mb-1">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-[#1a1a2e]/40 px-1 mb-1">
+        <div className="text-xs font-semibold uppercase tracking-wider text-[#1a1a2e]/40 px-1 mb-1">
           Inbox
         </div>
         {inboxRows.length === 0 && (
@@ -105,7 +105,7 @@ export default function SidePanel() {
       <UpcomingList />
 
       <div className="mx-3 mb-3 px-2">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-[#1a1a2e]/40 mb-1">
+        <div className="text-xs font-semibold uppercase tracking-wider text-[#1a1a2e]/40 mb-1">
           Projekty
         </div>
         <p className="text-xs text-[#1a1a2e]/30">Projekty (brzy)</p>
@@ -115,7 +115,7 @@ export default function SidePanel() {
         <div className="mx-3 mb-3">
           <button
             onClick={() => setDoneOpen((v) => !v)}
-            className="w-full text-left px-1 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#1a1a2e]/40 hover:text-[#1a1a2e]/60 flex items-center gap-1"
+            className="w-full text-left px-1 py-1 text-xs font-semibold uppercase tracking-wider text-[#1a1a2e]/40 hover:text-[#1a1a2e]/60 flex items-center gap-1"
           >
             <span>{doneOpen ? "▼" : "►"}</span>
             <span>Hotovo ({doneRows.length})</span>
