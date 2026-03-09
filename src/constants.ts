@@ -7,7 +7,7 @@ export const PRIORITY_COLORS = {
 
 export type Priority = keyof typeof PRIORITY_COLORS;
 
-export const HOUR_HEIGHT_PX = 48; // px per hour
+export const HOUR_HEIGHT_PX = 64; // px per hour
 export const SNAP_MINUTES = 15;
 export const SNAP_PX = (SNAP_MINUTES / 60) * HOUR_HEIGHT_PX; // 12px
 
