@@ -3,7 +3,7 @@ import { EvoluProvider } from "@evolu/react";
 import { evolu } from "./db/evolu";
 import Header from "./components/layout/Header";
 import CapacityBar from "./components/layout/CapacityBar";
-import InboxPanel from "./components/inbox/InboxPanel";
+import SidePanel from "./components/layout/SidePanel";
 import WeekCalendar from "./components/calendar/WeekCalendar";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import MobileLayout from "./components/mobile/MobileLayout";
@@ -55,7 +55,7 @@ function AppContent() {
         <DashboardLayout />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          <InboxPanel />
+          <SidePanel />
           <WeekCalendar weekStart={weekStart} />
         </div>
       )}

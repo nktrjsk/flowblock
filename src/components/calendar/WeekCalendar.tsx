@@ -358,31 +358,31 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
                 onDragOver={(e) => handleDragOver(e, dayIndex)}
                 onDrop={(e) => handleDrop(e, dayIndex)}
               >
-                {/* Hour grid lines */}
+                {/* Hour grid lines — strongest */}
                 {HOURS.map((h) => (
                   <div
                     key={h}
-                    style={{ top: h * HOUR_HEIGHT_PX }}
-                    className="absolute inset-x-0 border-t border-[#1a1a2e]/5"
+                    style={{ top: h * HOUR_HEIGHT_PX, borderColor: "rgba(26,26,46,0.2)" }}
+                    className="absolute inset-x-0 border-t"
                   />
                 ))}
-                {/* 15-min dotted lines (quarter + three-quarter hours) */}
+                {/* Sub-hour lines */}
                 {HOURS.map((h) => (
                   <>
                     <div
                       key={`${h}-q1`}
-                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.25 }}
-                      className="absolute inset-x-0 border-t border-dotted border-[#1a1a2e]/10"
+                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.25, borderColor: "rgba(26,26,46,0.07)", borderStyle: "dotted" }}
+                      className="absolute inset-x-0 border-t"
                     />
                     <div
                       key={`${h}-half`}
-                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.5 }}
-                      className="absolute inset-x-0 border-t border-[#1a1a2e]/10"
+                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.5, borderColor: "rgba(26,26,46,0.12)", borderStyle: "dashed" }}
+                      className="absolute inset-x-0 border-t"
                     />
                     <div
                       key={`${h}-q3`}
-                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.75 }}
-                      className="absolute inset-x-0 border-t border-dotted border-[#1a1a2e]/10"
+                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.75, borderColor: "rgba(26,26,46,0.07)", borderStyle: "dotted" }}
+                      className="absolute inset-x-0 border-t"
                     />
                   </>
                 ))}
