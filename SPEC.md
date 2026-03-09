@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.8 (2026-03-09)
+> **Verze dokumentu:** 0.9 (2026-03-09)
 > **Status:** Návrh MVP
 
 ---
@@ -277,6 +277,32 @@ umístěnou v hlavičce sloupce (nad kalendářovým gridem):
 - Lišty jsou vždy viditelné, nekollapsují.
 - Energetická lišta je zatím placeholder (zobrazuje mock data), plná funkčnost
   závisí na implementaci energy feature (sekce 11).
+
+### 5.8 Mobilní UI
+
+Mobilní verze je samostatný layout optimalizovaný pro "capture + check" use-case.
+Plánování (drag & drop, resize) zůstává na desktopu.
+
+**Struktura: dva taby ve spodní liště**
+
+- **Inbox** — výchozí tab. Seznam nezaplánovaných úkolů s prioritními a
+  energetickými pilly. Sbalitelná sekce Hotovo. FAB tlačítko (+) vpravo dole
+  pro rychlé přidání úkolu.
+- **Dnes** — denní timeline. "Právě teď" karta nahoře s názvem aktuálního
+  bloku, progress barem a zbývajícím časem. Pod ní chronologický seznam
+  dnešních bloků (vlastní = amber tečka, aktuální = červená tečka s glowem,
+  externí CalDAV = šedá tečka + dashed karta). FAB tlačítko (+) vpravo dole
+  pro rychlé přidání úkolu.
+
+**Kapacitní lišty** — zobrazeny pod topbarem, nad obsahem tabu (stejná
+podoba jako sekce 5.7, ale pro aktuální den).
+
+**Quick-add sheet** — FAB otevře bottom sheet s jednořádkovým inputem.
+Enter nebo tlačítko "Přidat" uloží úkol do inboxu. Tap mimo sheet zavře
+bez uložení.
+
+**Co mobilní verze neobsahuje:** týdenní pohled, drag & drop plánování,
+resize time-bloků, dashboard s projekty.
 
 ---
 
