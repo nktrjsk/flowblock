@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.11.0 (2026-03-12)
+> **Verze dokumentu:** 0.12.0 (2026-03-12)
 > **Status:** Návrh MVP
 
 ---
@@ -324,7 +324,67 @@ proto nezabírá místo v bottom tab baru.
 - Import owner key (tlačítko → file picker nebo paste input)
 - Varování při importu: "Importování jiného klíče přepíše lokální identitu"
 
-Další sekce (CalDAV, denní kapacita, vzhled...) budou doplněny postupně.
+*Kalendáře*
+- Seznam přidaných kalendářů (název, typ, barva, čas posledního syncu)
+- Na každém řádku kalendáře:
+  - Per-kalendář sync tlačítko (ikona `RefreshCw`, Lucide) — spustí sync jen pro daný kalendář; při syncu se ikona roztočí (spinning stav)
+  - Persistent chybový text pod řádkem, pokud sync tohoto kalendáře selhal — zobrazuje se do dalšího úspěšného syncu
+  - Tlačítko pro smazání kalendáře (zobrazí se při hoveru)
+- Tlačítko "Přidat kalendář" (ICS feed nebo CalDAV)
+
+Další sekce (denní kapacita, vzhled...) budou doplněny postupně.
+
+### 5.10 Sync tlačítko v Headeru
+
+Mezi navigačními tlačítky (Dnes / Týden) a ikonou Nastavení je umístěno **Sync tlačítko** (`ml-auto` zcela vpravo, vlevo od ikony Nastavení):
+
+- **Ikona:** `RefreshCw` (Lucide), bez popisku
+- **Klik:** spustí manuální sync všech kalendářů (`syncNow()`)
+- **Spinning stav:** ikona se roztočí, dokud sync probíhá (`syncing === true`)
+- **Chybová indikace:** pokud existují neuznané chyby z posledního syncu (polling nebo manuální), zobrazí se malá oranžová tečka absolutně pozicovaná v pravém horním rohu ikony. Tečka zmizí po dalším úspěšném syncu.
+- Tlačítko je vždy viditelné (desktop i mobil), i pokud nejsou přidány žádné kalendáře — v takovém případě klik nic neudělá (nebo tlačítko je disabled).
+
+### 5.11 Sync feedback — toast notifikace
+
+#### Princip stratifikace
+
+Ne každá sync událost je stejně důležitá. Feedback se liší podle toho, zda akci spustil uživatel explicitně, nebo se děje na pozadí:
+
+| Událost | Forma feedbacku | Délka |
+|---|---|---|
+| Kalendář úspěšně přidán | Toast zelený: "Kalendář přidán" | 2,5 s |
+| Počáteční sync po přidání selhal | Toast červený: "Sync selhal: [důvod]" | 6 s |
+| Manuální sync dokončen (úspěch) | Toast zelený: "Synchronizováno" | 2 s |
+| Manuální sync dokončen (chyba) | Toast červený: "Sync selhal: [důvod]" | 6 s |
+| Polling (pozadí) selhal | Oranžová tečka na Sync tlačítku + persistent text v SettingsModal | Dokud trvá chyba |
+| Polling (pozadí) úspěšný | Žádný feedback | — |
+
+Polling na pozadí záměrně **nevyvolává toast** — automatický sync každých 30 minut by jinak generoval notifikace bez akce uživatele, což je pro ADHD mozek zbytečný šum.
+
+#### Texty toastů
+
+- Kalendář přidán: "Kalendář přidán"
+- Sync úspěšný (manuální): "Synchronizováno"
+- Sync selhal (konkrétní důvod): "Sync selhal: [chybová zpráva, max. 60 znaků]"
+- Sync selhal (generický fallback): "Sync selhal — zkontroluj URL nebo přihlašovací údaje"
+
+#### Rozšíření Toast systému
+
+Stávající `Toast.tsx` podporuje pouze success styl (zelený). Potřebné rozšíření:
+
+```
+show(message: string, options?: { type?: "success" | "error", duration?: number })
+```
+
+- `success` (default): zelené pozadí/border/text, 2200 ms
+- `error`: červené pozadí/border/text, 6000 ms, s tlačítkem pro ruční zavření
+
+#### Chybový stav v SettingsModal
+
+Na řádku každého kalendáře v sekci Kalendáře (viz 5.9):
+- Pokud sync tohoto kalendáře selhal, zobrazí se pod řádkem malý červený text s popisem chyby
+- Text je persistent — zůstává viditelný, dokud sync daného kalendáře úspěšně neproběhne
+- Chybový stav pochází z `errors: Record<calendarId, string>` vráceného `useCalendarSync` hookem
 
 ---
 
@@ -361,6 +421,10 @@ Další sekce (CalDAV, denní kapacita, vzhled...) budou doplněny postupně.
 - [ ] Zobrazení externích událostí v kalendářovém pohledu (dashed styl)
 - [ ] Inkrementální sync pro CalDAV (sync-token)
 - [ ] Polling pro ICS feedy (periodické přestahování, konfigurovatelný interval)
+- [ ] Sync tlačítko v Headeru (manuální sync všech kalendářů, spinning stav, chybová tečka) — viz sekce 5.10
+- [ ] Toast notifikace pro sync události (přidání kalendáře, manuální sync, chyby) — viz sekce 5.11
+- [ ] Per-kalendář sync tlačítko a persistent chybový stav v SettingsModal — viz sekce 5.9 a 5.11
+- [ ] Rozšíření Toast systému o typ `error` (červený, 6s, zavírací tlačítko)
 
 ### Vrstva 3: ADHD vylepšení
 - [ ] Varování při přeplánování dne
