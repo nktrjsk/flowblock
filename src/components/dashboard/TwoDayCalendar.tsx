@@ -10,6 +10,7 @@ import {
   DragPayload,
 } from "../../constants";
 import TimeBlockComponent from "../calendar/TimeBlock";
+import ExternalEvent from "../calendar/ExternalEvent";
 import DayCapacityBars from "../calendar/DayCapacityBars";
 import * as Evolu from "@evolu/common";
 
@@ -60,6 +61,14 @@ const tasksQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null),
 );
 
+const externalEventsQuery = evolu.createQuery((db) =>
+  db
+    .selectFrom("externalEvent")
+    .select(["id", "calendar_id", "title", "start", "end", "is_all_day"])
+    .where("isDeleted", "is", null)
+    .orderBy("start", "asc"),
+);
+
 export default function TwoDayCalendar() {
   const { insert, update } = useEvolu();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -90,6 +99,7 @@ export default function TwoDayCalendar() {
 
   const timeBlockRows = useQuery(timeBlocksQuery);
   const taskRows = useQuery(tasksQuery);
+  const externalEventRows = useQuery(externalEventsQuery);
   const taskMap = new Map(taskRows.map((t) => [t.id, t]));
 
   const [ghost, setGhost] = useState<{
@@ -254,6 +264,30 @@ export default function TwoDayCalendar() {
       });
   }
 
+  function getExternalEventsForDay(dayIndex: number) {
+    const dayDate = days[dayIndex];
+    const dayStart = new Date(dayDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    return externalEventRows
+      .filter((ev) => {
+        if (!ev.start) return false;
+        const s = new Date(ev.start);
+        return s >= dayStart && s <= dayEnd;
+      })
+      .map((ev) => {
+        const startMins = isoToMinutes(ev.start ?? "", dayDate);
+        const endMins = isoToMinutes(ev.end ?? "", dayDate);
+        return {
+          ...ev,
+          startMinutes: startMins,
+          durationMinutes: Math.max(SNAP_MINUTES, endMins - startMins),
+        };
+      });
+  }
+
   const nowTop = (nowMinutes / 60) * HOUR_HEIGHT_PX;
 
   return (
@@ -313,6 +347,7 @@ export default function TwoDayCalendar() {
           {/* Day columns */}
           {days.map((_, dayIndex) => {
             const blocks = getBlocksForDay(dayIndex);
+            const extEvents = getExternalEventsForDay(dayIndex);
             const isGhostDay = ghost?.dayIndex === dayIndex;
             const isTodayCol = dayIndex === 0;
 
@@ -363,6 +398,16 @@ export default function TwoDayCalendar() {
                     <div className="flex-1 h-px bg-red-500" />
                   </div>
                 )}
+
+                {/* External events (dashed, below time blocks) */}
+                {extEvents.map((ev) => (
+                  <ExternalEvent
+                    key={ev.id}
+                    title={ev.title ?? ""}
+                    startMinutes={ev.startMinutes}
+                    durationMinutes={ev.durationMinutes}
+                  />
+                ))}
 
                 {/* Time blocks */}
                 {blocks.map((block) => (

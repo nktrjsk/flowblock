@@ -1,12 +1,20 @@
 import { createContext, useContext, useState, useCallback, useRef } from "react";
 
+type ToastType = "success" | "error";
+
 interface ToastItem {
   id: number;
   message: string;
+  type: ToastType;
+}
+
+interface ShowOptions {
+  type?: ToastType;
+  duration?: number;
 }
 
 interface ToastContextValue {
-  show: (message?: string) => void;
+  show: (message?: string, options?: ShowOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextValue>({ show: () => {} });
@@ -19,12 +27,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const nextId = useRef(0);
 
-  const show = useCallback((message = "Hotovo!") => {
+  const show = useCallback((message = "Hotovo!", options: ShowOptions = {}) => {
+    const { type = "success", duration } = options;
+    const ms = duration ?? (type === "error" ? 6000 : 2200);
     const id = nextId.current++;
-    setToasts((prev) => [...prev, { id, message }]);
+    setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 2200);
+    }, ms);
   }, []);
 
   return (
@@ -34,18 +44,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="flex items-center gap-2 bg-white border border-green-200 text-green-800 text-sm px-4 py-2 rounded-lg shadow-md animate-slide-in"
+            className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg shadow-md animate-slide-in border ${
+              t.type === "error"
+                ? "bg-white border-red-200 text-red-800"
+                : "bg-white border-green-200 text-green-800"
+            }`}
           >
-            <svg viewBox="0 0 16 16" className="w-4 h-4 text-green-500 shrink-0" fill="none">
-              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-              <path
-                d="M5 8l2 2 4-4"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            {t.type === "error" ? (
+              <svg viewBox="0 0 16 16" className="w-4 h-4 text-red-500 shrink-0" fill="none">
+                <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M8 5v3.5M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 16 16" className="w-4 h-4 text-green-500 shrink-0" fill="none">
+                <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
             {t.message}
           </div>
         ))}
