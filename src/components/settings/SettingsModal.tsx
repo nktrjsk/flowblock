@@ -5,7 +5,7 @@ import * as Evolu from "@evolu/common";
 import { useQuery } from "@evolu/react";
 import { evolu, useEvolu } from "../../db/evolu";
 import { CalendarId } from "../../db/schema";
-import { syncCalendar } from "../../services/calendarSync";
+import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
 import { useToast } from "../ui/Toast";
 
 interface SettingsModalProps {
@@ -75,6 +75,9 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
   const [addColor, setAddColor] = useState(COLORS[0]);
   const [addError, setAddError] = useState<string | null>(null);
   const [addSyncing, setAddSyncing] = useState(false);
+
+  // --- Advanced section ---
+  const [corsProxy, setCorsProxyState] = useState(() => getCorsProxy());
 
   // Per-calendar syncing state: calendarId → boolean
   const [calSyncing, setCalSyncing] = useState<Record<string, boolean>>({});
@@ -426,6 +429,39 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
               </div>
             </div>
           )}
+        </section>
+
+        {/* === Advanced section === */}
+        <section className="mt-6">
+          <h3 className="text-xs uppercase tracking-wider text-[#1a1a2e]/40 mb-3">
+            Pokročilé
+          </h3>
+          <label className="block text-sm text-[#1a1a2e]/70 mb-1">
+            CORS proxy URL
+          </label>
+          <input
+            type="url"
+            value={corsProxy}
+            onChange={(e) => {
+              setCorsProxyState(e.target.value);
+              setCorsProxy(e.target.value);
+            }}
+            placeholder="https://corsproxy.io/?url="
+            className="w-full text-sm bg-[#1a1a2e]/5 border border-[#1a1a2e]/20 rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#1a1a2e]/40 font-mono"
+          />
+          <p className="text-xs text-[#1a1a2e]/40 mt-1">
+            Pokud ICS sync selže kvůli CORS, nastav proxy která přidá potřebné hlavičky.
+            Hodnota se přidá před URL kalendáře.{" "}
+            <a
+              href="https://corsproxy.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-[#1a1a2e]/60"
+            >
+              corsproxy.io
+            </a>{" "}
+            je zdarma dostupná varianta.
+          </p>
         </section>
       </div>
     </div>

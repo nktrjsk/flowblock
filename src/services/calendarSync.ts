@@ -58,8 +58,35 @@ function parseICALString(icsText: string): ParsedEvent[] {
   return events;
 }
 
+export const CORS_PROXY_KEY = "flowblock_cors_proxy";
+
+export function getCorsProxy(): string {
+  return localStorage.getItem(CORS_PROXY_KEY) ?? "";
+}
+
+export function setCorsProxy(value: string) {
+  if (value.trim()) {
+    localStorage.setItem(CORS_PROXY_KEY, value.trim());
+  } else {
+    localStorage.removeItem(CORS_PROXY_KEY);
+  }
+}
+
 export async function fetchICS(url: string): Promise<ParsedEvent[]> {
-  const res = await fetch(url);
+  const proxy = getCorsProxy();
+  const fetchUrl = proxy ? proxy + url : url;
+  let res: Response;
+  try {
+    res = await fetch(fetchUrl);
+  } catch (e) {
+    const isNetworkError = e instanceof TypeError && e.message.includes("Failed to fetch");
+    if (isNetworkError && !proxy) {
+      throw new Error(
+        "CORS chyba — server blokuje browserové požadavky. Nastav CORS proxy v Nastavení → Pokročilé.",
+      );
+    }
+    throw new Error(String(e));
+  }
   if (!res.ok) {
     throw new Error(`ICS fetch selhal: ${res.status} ${res.statusText}`);
   }
