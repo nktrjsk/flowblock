@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.10 (2026-03-09)
+> **Verze dokumentu:** 0.11.0 (2026-03-12)
 > **Status:** Návrh MVP
 
 ---
@@ -16,14 +16,14 @@ Open-source webová aplikace pro plánování času, inspirovaná [Akiflow](http
 ### 2.1 Open-source & open standardy
 - Licence: WTFPL nebo jiná copyleft (ne GPL)
 - CalDAV (RFC 4791) pro synchronizaci kalendářů
-- iCalendar (RFC 5545) — VTODO pro úkoly, VEVENT pro time-blocky
+- iCalendar (RFC 5545) — VEVENT pro čtení externích událostí
 - Žádný vendor lock-in — uživatel vlastní svá data
 
 ### 2.2 Local-first
 - Data žijí primárně v lokální SQLite databázi (přes Evolu)
 - Aplikace funguje offline
 - Synchronizace mezi zařízeními přes Evolu relay server (CRDT, E2E šifrování)
-- CalDAV sync jako bridge do externího ekosystému
+- Read-only integrace s externími kalendáři (CalDAV + veřejné ICS feedy)
 
 ### 2.3 ADHD-friendly design
 - **Nízké tření:** Zapsání úkolu < 3 sekundy, minimum klikání
@@ -53,9 +53,9 @@ Open-source webová aplikace pro plánování času, inspirovaná [Akiflow](http
 │  └─────┬─────────────────┬───────┘  │
 │        │                 │          │
 │  ┌─────▼─────┐    ┌─────▼───────┐  │
-│  │   Evolu   │    │ CalDAV      │  │
-│  │ (lokální  │◄──►│ Sync Layer  │  │
-│  │  SQLite)  │    │             │  │
+│  │   Evolu   │    │ Ext. kal.   │  │
+│  │ (lokální  │◄───│ Sync Layer  │  │
+│  │  SQLite)  │    │ (read-only) │  │
 │  └─────┬─────┘    └─────┬───────┘  │
 │        │                 │          │
 └────────┼─────────────────┼──────────┘
@@ -66,18 +66,18 @@ Open-source webová aplikace pro plánování času, inspirovaná [Akiflow](http
 
 ### 3.2 Source of truth
 
-**Evolu (lokální SQLite) je source of truth.** CalDAV sync layer je bidirectional bridge:
-- Čte z Evolu → zapisuje do CalDAV serveru
-- Přijímá změny z CalDAV → zapisuje do Evolu
+**Evolu (lokální SQLite) je source of truth.** Sync layer externích kalendářů je read-only bridge:
+- Čte z externích CalDAV serverů a veřejných ICS feedů → zapisuje do ExternalEvents v Evolu
+- FlowBlock na CalDAV server nic nezapisuje
 
-### 3.3 CalDAV mapování
+### 3.3 Mapování externích kalendářů
 
-| Koncept v appce | iCalendar typ | Kdy vznikne |
+| Zdroj | Protokol | Co se uloží |
 |---|---|---|
-| Úkol v inboxu | VTODO | Při vytvoření úkolu |
-| Time-block v kalendáři | VEVENT | Při přetažení úkolu do kalendáře |
-| Propojení | `RELATED-TO` property | VEVENT odkazuje na VTODO |
-| Externí událost | VEVENT (read-only) | Při syncu z CalDAV |
+| CalDAV server (Nextcloud atd.) | CalDAV (RFC 4791) | VEVENT → ExternalEvents |
+| Veřejný ICS feed | HTTP + iCalendar (RFC 5545) | VEVENT → ExternalEvents |
+
+Poznámka: VTODO z CalDAV serverů se ignorují — FlowBlock spravuje úkoly samostatně v Evolu.
 
 ---
 
@@ -96,8 +96,6 @@ Open-source webová aplikace pro plánování času, inspirovaná [Akiflow](http
 | `energy` | `normal` \| `lite` \| `draining` | Energetická náročnost (default `normal`, viz sekce 11) |
 | `waiting_for` | String (nullable) | Na koho/co úkol čeká; null = "ball is in my court" (viz sekce 12) |
 | `project_id` | Project ID (nullable) | Reference na projekt (budoucí feature) |
-| `caldav_uid` | String (nullable) | UID propojeného VTODO |
-| `caldav_etag` | String (nullable) | Pro detekci změn na CalDAV serveru |
 | `created_at` | Timestamp | Čas vytvoření |
 | `updated_at` | Timestamp | Čas poslední úpravy |
 
@@ -110,19 +108,18 @@ Open-source webová aplikace pro plánování času, inspirovaná [Akiflow](http
 | `title` | NonEmptyString1000 | Název (defaultně z tasku) |
 | `start` | Timestamp | Začátek bloku |
 | `end` | Timestamp | Konec bloku |
-| `caldav_uid` | String (nullable) | UID propojeného VEVENT |
-| `caldav_etag` | String (nullable) | Pro detekci změn |
-| `calendar_id` | Calendar ID | Do kterého kalendáře patří |
 
 ### 4.3 Calendars
 
 | Sloupec | Typ | Popis |
 |---|---|---|
 | `id` | Evolu ID | Primární klíč |
-| `caldav_url` | String | URL CalDAV kolekce |
+| `type` | `caldav` \| `ics` | Typ zdroje |
+| `url` | String | CalDAV kolekce URL nebo ICS feed URL |
 | `display_name` | String | Název kalendáře |
 | `color` | String | Barva pro UI |
-| `sync_token` | String (nullable) | Pro inkrementální sync |
+| `sync_token` | String (nullable) | Pro inkrementální sync (pouze CalDAV) |
+| `last_fetched_at` | Timestamp (nullable) | Čas posledního fetch (ICS polling) |
 
 ### 4.4 ExternalEvents
 
@@ -338,7 +335,7 @@ Další sekce (CalDAV, denní kapacita, vzhled...) budou doplněny postupně.
 | UI framework | React | Evolu má nativní React hooks |
 | Local DB + sync | [Evolu](https://evolu.dev) | SQLite + CRDT, E2E encrypted relay |
 | Typový systém | TypeScript | Evolu vyžaduje, Kysely pro type-safe SQL |
-| CalDAV komunikace | TBD | tcdav / vlastní fetch wrapper |
+| Ext. kalendáře | TBD | Vlastní fetch wrapper (CalDAV REPORT + ICS polling) |
 | Drag & drop | HTML5 Drag API | Vlastní implementace s overlay mechanikou |
 | Styling | TBD | Tailwind / CSS Modules / jiné |
 
@@ -358,19 +355,14 @@ Další sekce (CalDAV, denní kapacita, vzhled...) budou doplněny postupně.
 - [ ] Barvy time-bloků dle priority
 - [ ] Splnění úkolu (checkbox → Done)
 
-### Vrstva 2: CalDAV integrace (read)
-- [ ] Připojení k CalDAV serveru (konfigurace URL + credentials)
-- [ ] Čtení kalendářů a událostí → ExternalEvents
+### Vrstva 2: Integrace externích kalendářů (read-only)
+- [ ] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
+- [ ] Přidání veřejného ICS feedu (URL) → stažení a parsování → ExternalEvents
 - [ ] Zobrazení externích událostí v kalendářovém pohledu (dashed styl)
-- [ ] Inkrementální sync (sync-token)
+- [ ] Inkrementální sync pro CalDAV (sync-token)
+- [ ] Polling pro ICS feedy (periodické přestahování, konfigurovatelný interval)
 
-### Vrstva 3: CalDAV integrace (write)
-- [ ] Zápis TimeBlocků jako VEVENT na CalDAV server
-- [ ] Zápis Tasks jako VTODO na CalDAV server
-- [ ] RELATED-TO propojení mezi VTODO a VEVENT
-- [ ] Bidirectional sync s conflict resolution (etag)
-
-### Vrstva 4: ADHD vylepšení
+### Vrstva 3: ADHD vylepšení
 - [ ] Varování při přeplánování dne
 - [ ] Tiché přesunutí nesplněných úkolů na další den
 - [ ] Animace/zvuky při splnění
@@ -398,7 +390,7 @@ Další sekce (CalDAV, denní kapacita, vzhled...) budou doplněny postupně.
 
 - [ ] Konkrétní open-source licence (WTFPL nebo jiná copyleft, ne GPL)
 - [ ] Název projektu (FlowBlock je pracovní)
-- [ ] CalDAV knihovna — prozkoumat existující JS/TS implementace
+- [ ] Ext. kalendáře — prozkoumat JS/TS ICS parsery (ical.js?) a CalDAV fetch přístup
 - [ ] Styling framework
 - [ ] Deployment strategie — PWA jako primární mobilní/desktop řešení, statický hosting
 - [ ] Testovací CalDAV server pro vývoj (Radicale? Baikal?)
