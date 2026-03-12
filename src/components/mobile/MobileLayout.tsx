@@ -105,7 +105,7 @@ export default function MobileLayout() {
       {/* Quick-add sheet */}
       {sheetOpen && <QuickAddSheet onClose={() => setSheetOpen(false)} />}
 
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} syncErrors={{}} />}
     </div>
   );
 }

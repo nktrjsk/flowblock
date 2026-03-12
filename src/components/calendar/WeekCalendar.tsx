@@ -10,6 +10,7 @@ import {
   DragPayload,
 } from "../../constants";
 import TimeBlockComponent from "./TimeBlock";
+import ExternalEvent from "./ExternalEvent";
 import DayCapacityBars from "./DayCapacityBars";
 import * as Evolu from "@evolu/common";
 
@@ -104,8 +105,17 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
       .where("isDeleted", "is", null),
   );
 
+  const externalEventsQuery = evolu.createQuery((db) =>
+    db
+      .selectFrom("externalEvent")
+      .select(["id", "calendar_id", "title", "start", "end", "is_all_day"])
+      .where("isDeleted", "is", null)
+      .orderBy("start", "asc"),
+  );
+
   const timeBlockRows = useQuery(timeBlocksQuery);
   const taskRows = useQuery(tasksQuery);
+  const externalEventRows = useQuery(externalEventsQuery);
 
   const taskMap = new Map(taskRows.map((t) => [t.id, t]));
 
@@ -286,6 +296,30 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
       });
   }
 
+  function getExternalEventsForDay(dayIndex: number) {
+    const dayDate = getDayDate(weekStart, dayIndex);
+    const dayStart = new Date(dayDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    return externalEventRows
+      .filter((ev) => {
+        if (!ev.start) return false;
+        const s = new Date(ev.start);
+        return s >= dayStart && s <= dayEnd;
+      })
+      .map((ev) => {
+        const startMins = isoToMinutes(ev.start ?? "", dayDate);
+        const endMins = isoToMinutes(ev.end ?? "", dayDate);
+        return {
+          ...ev,
+          startMinutes: startMins,
+          durationMinutes: Math.max(SNAP_MINUTES, endMins - startMins),
+        };
+      });
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -346,6 +380,7 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
           {/* Day columns */}
           {DAY_LABELS.map((_, dayIndex) => {
             const blocks = getBlocksForDay(dayIndex);
+            const extEvents = getExternalEventsForDay(dayIndex);
             const isGhostDay = ghost?.dayIndex === dayIndex;
             const isTodayCol = dayIndex === getTodayIndex(weekStart);
             const nowTop = (nowMinutes / 60) * HOUR_HEIGHT_PX;
@@ -397,6 +432,16 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
                     <div className="flex-1 h-px bg-red-500" />
                   </div>
                 )}
+
+                {/* External events (dashed, below time blocks) */}
+                {extEvents.map((ev) => (
+                  <ExternalEvent
+                    key={ev.id}
+                    title={ev.title ?? ""}
+                    startMinutes={ev.startMinutes}
+                    durationMinutes={ev.durationMinutes}
+                  />
+                ))}
 
                 {/* Time blocks */}
                 {blocks.map((block) => (

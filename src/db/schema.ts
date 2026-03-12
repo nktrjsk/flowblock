@@ -34,8 +34,6 @@ export const Database = {
     energy: Evolu.NonEmptyString100,
     waiting_for: Evolu.nullOr(Evolu.String1000),
     project_id: Evolu.nullOr(Evolu.NonEmptyString100),
-    caldav_uid: Evolu.nullOr(Evolu.NonEmptyString1000),
-    caldav_etag: Evolu.nullOr(Evolu.NonEmptyString1000),
   },
   timeBlock: {
     id: TimeBlockId,
@@ -44,16 +42,18 @@ export const Database = {
     // ISO 8601 datetime strings
     start: Evolu.NonEmptyString100,
     end: Evolu.NonEmptyString100,
-    caldav_uid: Evolu.nullOr(Evolu.NonEmptyString1000),
-    caldav_etag: Evolu.nullOr(Evolu.NonEmptyString1000),
-    calendar_id: Evolu.nullOr(CalendarId),
   },
   calendar: {
     id: CalendarId,
-    caldav_url: Evolu.NonEmptyString1000,
+    // "caldav" | "ics"
+    type: Evolu.NonEmptyString100,
+    url: Evolu.NonEmptyString1000,
     display_name: Evolu.NonEmptyString1000,
     color: Evolu.NonEmptyString100,
     sync_token: Evolu.nullOr(Evolu.NonEmptyString1000),
+    last_fetched_at: Evolu.nullOr(Evolu.NonEmptyString100),
+    username: Evolu.nullOr(Evolu.NonEmptyString1000),
+    password: Evolu.nullOr(Evolu.NonEmptyString1000),
   },
   externalEvent: {
     id: ExternalEventId,

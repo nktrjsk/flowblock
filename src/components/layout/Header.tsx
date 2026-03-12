@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { RefreshCw } from "lucide-react";
 import SettingsModal from "../settings/SettingsModal";
 
 interface HeaderProps {
@@ -7,6 +8,10 @@ interface HeaderProps {
   weekStart: Date;
   onPrevWeek: () => void;
   onNextWeek: () => void;
+  syncing: boolean;
+  onSyncNow: () => void;
+  hasSyncErrors: boolean;
+  syncErrors: Record<string, string>;
 }
 
 function formatWeekRange(weekStart: Date): string {
@@ -25,6 +30,10 @@ export default function Header({
   weekStart,
   onPrevWeek,
   onNextWeek,
+  syncing,
+  onSyncNow,
+  hasSyncErrors,
+  syncErrors,
 }: HeaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -76,7 +85,28 @@ export default function Header({
           </button>
         </>
       )}
-      <div className="ml-auto">
+
+      <div className="ml-auto flex items-center gap-2">
+        {/* Sync button */}
+        <div className="relative">
+          <button
+            onClick={onSyncNow}
+            disabled={syncing}
+            className="w-7 h-7 flex items-center justify-center rounded-md border border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5 transition-colors disabled:opacity-50"
+            title={syncing ? "Synchronizuji…" : "Synchronizovat kalendáře"}
+          >
+            <RefreshCw
+              size={14}
+              className={syncing ? "animate-spin" : ""}
+            />
+          </button>
+          {/* Orange dot for background sync errors */}
+          {hasSyncErrors && !syncing && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-400 border border-[#f5f0e8]" />
+          )}
+        </div>
+
+        {/* Settings button */}
         <button
           onClick={() => setSettingsOpen(true)}
           className="w-7 h-7 flex items-center justify-center rounded-md border border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5 transition-colors text-sm"
@@ -85,7 +115,13 @@ export default function Header({
           ⚙
         </button>
       </div>
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+
+      {settingsOpen && (
+        <SettingsModal
+          onClose={() => setSettingsOpen(false)}
+          syncErrors={syncErrors}
+        />
+      )}
     </header>
   );
 }
