@@ -6,6 +6,8 @@ import { useQuery } from "@evolu/react";
 import { evolu, useEvolu } from "../../db/evolu";
 import { CalendarId } from "../../db/schema";
 import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
+import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
+import { NOTIFICATIONS_ENABLED_KEY } from "../../constants";
 import { useToast } from "../ui/Toast";
 
 interface SettingsModalProps {
@@ -93,6 +95,28 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
 
   // Advanced
   const [corsProxy, setCorsProxyState] = useState(() => getCorsProxy());
+
+  // Notifications
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    () => localStorage.getItem(NOTIFICATIONS_ENABLED_KEY) === "true",
+  );
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
+    () => ("Notification" in window ? Notification.permission : "unsupported"),
+  );
+
+  async function handleNotifToggle() {
+    if (notificationsEnabled) {
+      localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, "false");
+      setNotificationsEnabled(false);
+      return;
+    }
+    const granted = await requestPermissionIfNeeded();
+    setNotifPermission("Notification" in window ? Notification.permission : "unsupported");
+    if (granted) {
+      localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, "true");
+      setNotificationsEnabled(true);
+    }
+  }
 
   function openEdit(cal: typeof calendarRows[number]) {
     setShowAddForm(false);
@@ -503,6 +527,39 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
                 </button>
                 <button onClick={resetAddForm} className="text-sm px-3 py-1.5 border border-[#1a1a2e]/20 rounded-lg hover:bg-[#1a1a2e]/5 transition-colors">Zrušit</button>
               </div>
+            </div>
+          )}
+        </section>
+
+        {/* === Notifications section === */}
+        <section className="mt-6">
+          <h3 className="text-xs uppercase tracking-wider text-[#1a1a2e]/40 mb-3">Oznámení</h3>
+          {notifPermission === "unsupported" ? (
+            <p className="text-sm text-[#1a1a2e]/40">Notifikace nejsou v tomto prohlížeči podporovány.</p>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-[#1a1a2e]/80">Připomenutí přechodů mezi bloky</p>
+                <p className="text-xs text-[#1a1a2e]/40 mt-0.5">
+                  Upozornění 5 minut před koncem time-blocku.
+                  {notifPermission === "denied" && (
+                    <span className="text-red-500 ml-1">Notifikace jsou zakázány v prohlížeči.</span>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={handleNotifToggle}
+                disabled={notifPermission === "denied"}
+                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:opacity-40 ${
+                  notificationsEnabled ? "bg-[#1a1a2e]" : "bg-[#1a1a2e]/20"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${
+                    notificationsEnabled ? "left-5" : "left-1"
+                  }`}
+                />
+              </button>
             </div>
           )}
         </section>
