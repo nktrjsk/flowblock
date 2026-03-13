@@ -9,6 +9,8 @@ import MobileLayout from "./components/mobile/MobileLayout";
 import { ToastProvider, useToast } from "./components/ui/Toast";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useCalendarSync } from "./hooks/useCalendarSync";
+import { useDayRollover } from "./hooks/useDayRollover";
+import { useBlockTransitionNotifications } from "./hooks/useBlockTransitionNotifications";
 
 function getMondayOfWeek(date: Date): Date {
   const d = new Date(date);
@@ -26,6 +28,8 @@ function AppContent() {
   const { show } = useToast();
 
   const { syncing, errors, syncNow } = useCalendarSync();
+  useDayRollover();
+  useBlockTransitionNotifications();
   const prevErrorsRef = useRef<Record<string, string>>({});
 
   // Show error toasts when background polling errors change

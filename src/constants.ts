@@ -18,6 +18,9 @@ export const GRID_HEIGHT_PX = DAY_END_HOUR * HOUR_HEIGHT_PX; // 1152px
 
 export const DRAG_DATA_KEY = "application/flowblock";
 
+export const NOTIFICATION_LEAD_MINUTES = 5;
+export const NOTIFICATIONS_ENABLED_KEY = "flowblock_notifications";
+
 export type DragPayload =
   | { type: "task"; taskId: string }
   | { type: "timeblock"; timeBlockId: string; offsetMinutes: number; taskId?: string };
