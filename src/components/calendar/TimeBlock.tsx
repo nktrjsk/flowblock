@@ -12,6 +12,7 @@ import {
   SNAP_MINUTES,
 } from "../../constants";
 import * as Evolu from "@evolu/common";
+import TimeBlockPopover from "./TimeBlockPopover";
 
 interface TimeBlockProps {
   id: TimeBlockId;
@@ -38,6 +39,7 @@ type ResizeEdge = "top" | "bottom";
 
 interface TimeBlockComponentProps extends TimeBlockProps {
   dayDate: Date;
+  taskTitle?: string | null;
   onResizeChange?: (id: string, liveStart: number | null, liveEnd: number | null) => void;
 }
 
@@ -49,15 +51,17 @@ export default function TimeBlock({
   startMinutes,
   durationMinutes,
   dayDate,
+  taskTitle,
   onResizeChange,
 }: TimeBlockComponentProps) {
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(title);
   const [liveResize, setLiveResize] = useState<{
     startMinutes: number;
     endMinutes: number;
   } | null>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const { update } = useEvolu();
+  const blockRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef<{
     edge: ResizeEdge;
     startY: number;
@@ -67,6 +71,7 @@ export default function TimeBlock({
     currentEnd: number;
   } | null>(null);
   const isDragging = useRef(false);
+  const justDragged = useRef(false);
 
   const prio = (priority ?? "none") as Priority;
   const colors = PRIORITY_COLORS[prio] ?? PRIORITY_COLORS.none;
@@ -85,7 +90,6 @@ export default function TimeBlock({
       return;
     }
     isDragging.current = true;
-    // offsetMinutes: how many minutes from block start to cursor
     const blockTopPx = (e.currentTarget as HTMLElement).getBoundingClientRect().top;
     const cursorOffsetPx = e.clientY - blockTopPx;
     const offsetMinutes = Math.round((cursorOffsetPx / HOUR_HEIGHT_PX) * 60 / SNAP_MINUTES) * SNAP_MINUTES;
@@ -102,6 +106,19 @@ export default function TimeBlock({
 
   function handleDragEnd() {
     isDragging.current = false;
+    justDragged.current = true;
+    setTimeout(() => { justDragged.current = false; }, 200);
+  }
+
+  function handleClick(e: React.MouseEvent) {
+    if (justDragged.current) return;
+    if (resizingRef.current) return;
+    e.stopPropagation();
+    const rect = blockRef.current?.getBoundingClientRect();
+    if (rect) {
+      setAnchorRect(rect);
+      setPopoverOpen(true);
+    }
   }
 
   function handleResizeMouseDown(e: React.MouseEvent, edge: ResizeEdge) {
@@ -162,85 +179,70 @@ export default function TimeBlock({
     document.addEventListener("mouseup", onMouseUp);
   }
 
-  function handleDoubleClick() {
-    setEditing(true);
-  }
-
-  function handleEditKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      const trimmed = editValue.trim();
-      if (trimmed) {
-        const result = Evolu.NonEmptyString1000.from(trimmed);
-        if (result.ok) update("timeBlock", { id, title: result.value });
-      }
-      setEditing(false);
-    } else if (e.key === "Escape") {
-      setEditValue(title);
-      setEditing(false);
-    }
-  }
-
   return (
-    <div
-      draggable={!editing}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDoubleClick={handleDoubleClick}
-      style={{
-        position: "absolute",
-        top,
-        left: 2,
-        right: 2,
-        height,
-        backgroundColor: colors.bg,
-        borderLeft: `3px solid ${colors.border}`,
-        color: colors.text,
-        zIndex: 10,
-      }}
-      className="rounded-sm cursor-grab active:cursor-grabbing select-none group overflow-visible"
-    >
-      {/* Top resize handle */}
+    <>
       <div
-        onMouseDown={(e) => handleResizeMouseDown(e, "top")}
-        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white border border-[#1a1a2e]/20 opacity-0 group-hover:opacity-100 cursor-n-resize z-20 flex items-center justify-center"
-        style={{ pointerEvents: "auto" }}
+        ref={blockRef}
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onClick={handleClick}
+        style={{
+          position: "absolute",
+          top,
+          left: 2,
+          right: 2,
+          height,
+          backgroundColor: colors.bg,
+          borderLeft: `3px solid ${colors.border}`,
+          color: colors.text,
+          zIndex: 10,
+        }}
+        className="rounded-sm cursor-pointer select-none group overflow-visible"
       >
-        <GripVertical size={12} className="text-[#1a1a2e]/40" />
-      </div>
+        {/* Top resize handle */}
+        <div
+          onMouseDown={(e) => handleResizeMouseDown(e, "top")}
+          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white border border-[#1a1a2e]/20 opacity-0 group-hover:opacity-100 cursor-n-resize z-20 flex items-center justify-center"
+          style={{ pointerEvents: "auto" }}
+        >
+          <GripVertical size={12} className="text-[#1a1a2e]/40" />
+        </div>
 
-      {/* Content */}
-      <div className="h-full flex flex-col justify-start pt-0.5 px-1.5 overflow-hidden">
-        <span className="text-[10px] opacity-60 leading-none">
-          {formatTime(displayStart)}–{formatTime(endMinutes)}
-        </span>
-        {editing ? (
-          <input
-            autoFocus
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={handleEditKeyDown}
-            onBlur={() => {
-              setEditValue(title);
-              setEditing(false);
-            }}
-            className="text-xs font-medium bg-transparent outline-none border-b border-current w-full mt-0.5"
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
+        {/* Content */}
+        <div className="h-full flex flex-col justify-start pt-0.5 px-1.5 overflow-hidden">
+          <span className="text-[10px] opacity-60 leading-none">
+            {formatTime(displayStart)}–{formatTime(endMinutes)}
+          </span>
           <span className="text-xs font-medium leading-tight mt-0.5 truncate">
             {title}
           </span>
-        )}
+        </div>
+
+        {/* Bottom resize handle */}
+        <div
+          onMouseDown={(e) => handleResizeMouseDown(e, "bottom")}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-5 h-5 rounded-full bg-white border border-[#1a1a2e]/20 opacity-0 group-hover:opacity-100 cursor-s-resize z-20 flex items-center justify-center"
+          style={{ pointerEvents: "auto" }}
+        >
+          <GripVertical size={12} className="text-[#1a1a2e]/40" />
+        </div>
       </div>
 
-      {/* Bottom resize handle */}
-      <div
-        onMouseDown={(e) => handleResizeMouseDown(e, "bottom")}
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-5 h-5 rounded-full bg-white border border-[#1a1a2e]/20 opacity-0 group-hover:opacity-100 cursor-s-resize z-20 flex items-center justify-center"
-        style={{ pointerEvents: "auto" }}
-      >
-        <GripVertical size={12} className="text-[#1a1a2e]/40" />
-      </div>
-    </div>
+      {popoverOpen && anchorRect && (
+        <TimeBlockPopover
+          id={id}
+          title={title}
+          startMinutes={displayStart}
+          endMinutes={endMinutes}
+          priority={priority}
+          taskId={taskId}
+          taskTitle={taskTitle ?? null}
+          dayDate={dayDate}
+          anchorRect={anchorRect}
+          onClose={() => setPopoverOpen(false)}
+        />
+      )}
+    </>
   );
 }
