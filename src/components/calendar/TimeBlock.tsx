@@ -38,6 +38,7 @@ type ResizeEdge = "top" | "bottom";
 
 interface TimeBlockComponentProps extends TimeBlockProps {
   dayDate: Date;
+  onResizeChange?: (id: string, liveStart: number | null, liveEnd: number | null) => void;
 }
 
 export default function TimeBlock({
@@ -48,6 +49,7 @@ export default function TimeBlock({
   startMinutes,
   durationMinutes,
   dayDate,
+  onResizeChange,
 }: TimeBlockComponentProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
@@ -125,10 +127,12 @@ export default function TimeBlock({
         const newEnd = Math.min(Math.max(originalStart + SNAP_MINUTES, originalEnd + deltaMinutes), 24 * 60);
         resizingRef.current.currentEnd = newEnd;
         flushSync(() => setLiveResize({ startMinutes: originalStart, endMinutes: newEnd }));
+        onResizeChange?.(id, originalStart, newEnd);
       } else {
         const newStart = Math.max(0, Math.min(originalEnd - SNAP_MINUTES, originalStart + deltaMinutes));
         resizingRef.current.currentStart = newStart;
         flushSync(() => setLiveResize({ startMinutes: newStart, endMinutes: originalEnd }));
+        onResizeChange?.(id, newStart, originalEnd);
       }
     }
 
@@ -149,6 +153,7 @@ export default function TimeBlock({
       }
       resizingRef.current = null;
       setLiveResize(null);
+      onResizeChange?.(id, null, null);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     }
