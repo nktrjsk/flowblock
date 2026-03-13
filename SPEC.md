@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.12.0 (2026-03-12)
+> **Verze dokumentu:** 0.13.0 (2026-03-13)
 > **Status:** Návrh MVP
 
 ---
@@ -326,10 +326,21 @@ proto nezabírá místo v bottom tab baru.
 
 *Kalendáře*
 - Seznam přidaných kalendářů (název, typ, barva, čas posledního syncu)
-- Na každém řádku kalendáře:
+- Na každém řádku kalendáře (hover akce):
   - Per-kalendář sync tlačítko (ikona `RefreshCw`, Lucide) — spustí sync jen pro daný kalendář; při syncu se ikona roztočí (spinning stav)
+  - Tlačítko pro editaci kalendáře (ikona `Pencil`, Lucide) — rozbalí inline editační formulář pod řádkem (accordion vzor)
+  - Tlačítko pro smazání kalendáře
   - Persistent chybový text pod řádkem, pokud sync tohoto kalendáře selhal — zobrazuje se do dalšího úspěšného syncu
-  - Tlačítko pro smazání kalendáře (zobrazí se při hoveru)
+- **Inline editační formulář** (accordion pod řádkem):
+  - Editovatelná pole: `display_name`, `url`, `username`, `password`, `color`
+  - Pole `type` (`caldav` / `ics`) není editovatelné — změna typu znamená jiný sync mechanismus; doporučené řešení je smazat a přidat znovu
+  - Vizuální styl formuláře je shodný se stávajícím formulářem "Přidat kalendář"
+  - Heslo je při otevření formuláře skryté (`type="password"`); tlačítko vedle pole toggluje viditelnost
+  - Barva: sada přednastavených barev jako klikatelná kolečka (stejný vzor jako "Přidat kalendář")
+  - V jednom okamžiku může být otevřen max. jeden formulář (editace nebo přidání) — druhý se automaticky zavře
+  - Ikona `Pencil` se při otevření editace změní na `X` (indikuje možnost zavřít)
+  - Tlačítko **"Uložit a synchronizovat"** — uloží změny do Evolu, okamžitě spustí re-sync tohoto kalendáře, zobrazí toast
+  - Tlačítko **"Zrušit"** — zavře formulář bez uložení, bez potvrzovacího dialogu
 - Tlačítko "Přidat kalendář" (ICS feed nebo CalDAV)
 
 Další sekce (denní kapacita, vzhled...) budou doplněny postupně.
@@ -354,6 +365,8 @@ Ne každá sync událost je stejně důležitá. Feedback se liší podle toho, 
 |---|---|---|
 | Kalendář úspěšně přidán | Toast zelený: "Kalendář přidán" | 2,5 s |
 | Počáteční sync po přidání selhal | Toast červený: "Sync selhal: [důvod]" | 6 s |
+| Kalendář upraven a synchronizován (úspěch) | Toast zelený: "Kalendář uložen" | 2,5 s |
+| Sync po úpravě selhal | Toast červený: "Sync selhal: [důvod]" | 6 s |
 | Manuální sync dokončen (úspěch) | Toast zelený: "Synchronizováno" | 2 s |
 | Manuální sync dokončen (chyba) | Toast červený: "Sync selhal: [důvod]" | 6 s |
 | Polling (pozadí) selhal | Oranžová tečka na Sync tlačítku + persistent text v SettingsModal | Dokud trvá chyba |
@@ -364,6 +377,7 @@ Polling na pozadí záměrně **nevyvolává toast** — automatický sync každ
 #### Texty toastů
 
 - Kalendář přidán: "Kalendář přidán"
+- Kalendář upraven: "Kalendář uložen"
 - Sync úspěšný (manuální): "Synchronizováno"
 - Sync selhal (konkrétní důvod): "Sync selhal: [chybová zpráva, max. 60 znaků]"
 - Sync selhal (generický fallback): "Sync selhal — zkontroluj URL nebo přihlašovací údaje"
