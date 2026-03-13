@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@evolu/react";
 import { evolu } from "../../db/evolu";
 
@@ -17,7 +18,12 @@ function formatTime(iso: string): string {
 }
 
 export default function UpcomingList() {
-  const now = new Date();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const todayEnd = new Date(today);

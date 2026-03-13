@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import confetti from "canvas-confetti";
+import { Flag } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TaskId } from "../../db/schema";
 import { PRIORITY_COLORS, Priority, DRAG_DATA_KEY, DragPayload } from "../../constants";
@@ -17,16 +19,47 @@ interface TaskItemProps {
 export default function TaskItem({ id, title, priority, status, energy, waitingFor }: TaskItemProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
+  const [checkAnim, setCheckAnim] = useState(false);
+  const [showPriorityPicker, setShowPriorityPicker] = useState(false);
+  const checkboxRef = useRef<HTMLButtonElement>(null);
   const { update } = useEvolu();
   const toast = useToast();
 
   const prio = (priority ?? "none") as Priority;
   const colors = PRIORITY_COLORS[prio] ?? PRIORITY_COLORS.none;
 
+  function fireConfetti() {
+    const btn = checkboxRef.current;
+    if (!btn) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // CSS-only fallback: brief scale pulse via state
+      setCheckAnim(true);
+      setTimeout(() => setCheckAnim(false), 400);
+      return;
+    }
+
+    const rect = btn.getBoundingClientRect();
+    confetti({
+      particleCount: 55,
+      spread: 65,
+      origin: {
+        x: (rect.left + rect.width / 2) / window.innerWidth,
+        y: (rect.top + rect.height / 2) / window.innerHeight,
+      },
+      colors: ["#4f8ef7", "#4caf7a", "#e09b2f", "#e85d5d", "#9b59b6"],
+      scalar: 0.75,
+      ticks: 90,
+    });
+  }
+
   function handleCheck() {
     const newStatus = status === "done" ? "inbox" : "done";
     update("task", { id, status: Evolu.NonEmptyString100.orThrow(newStatus) });
-    if (newStatus === "done") toast.show("Hotovo! 🎉");
+    if (newStatus === "done") {
+      toast.show("Hotovo!");
+      fireConfetti();
+    }
   }
 
   function handleDragStart(e: React.DragEvent) {
@@ -53,16 +86,21 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
     <div
       draggable
       onDragStart={handleDragStart}
-      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-[#1a1a2e]/5 group cursor-grab active:cursor-grabbing ${waitingFor != null ? "opacity-60" : ""}`}
+      className={`relative flex items-center gap-2 pl-4 pr-3 py-2.5 rounded-lg hover:bg-[#1a1a2e]/5 group cursor-grab active:cursor-grabbing ${waitingFor != null ? "opacity-60" : ""}`}
     >
-      {/* Priority dot */}
-      <span
-        className="w-2.5 h-2.5 rounded-full shrink-0"
+      {/* Priority bar — vertical strip on left edge */}
+      <div
+        className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full"
         style={{ backgroundColor: colors.border }}
       />
       {/* Checkbox */}
       <button
+        ref={checkboxRef}
         onClick={handleCheck}
+        style={{
+          transform: checkAnim ? "scale(1.35)" : "scale(1)",
+          transition: "transform 0.2s ease",
+        }}
         className="w-5 h-5 shrink-0 rounded border border-[#1a1a2e]/30 flex items-center justify-center hover:border-[#1a1a2e]/60 transition-colors"
       >
         {status === "done" && (
@@ -104,6 +142,45 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
       {energy === "lite" && (
         <span className="text-xs shrink-0 opacity-60" title="Lehký">☁</span>
       )}
+      {/* Priority picker */}
+      <div className="relative shrink-0">
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowPriorityPicker((v) => !v); }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-[#1a1a2e]/10"
+          title="Priorita"
+        >
+          <Flag size={12} style={{ color: colors.border }} />
+        </button>
+        {showPriorityPicker && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowPriorityPicker(false)}
+            />
+            <div className="absolute right-0 bottom-full mb-1 z-50 bg-white rounded-lg shadow-lg border border-[#1a1a2e]/10 py-1 min-w-[130px]">
+              {(["none", "low", "medium", "high"] as Priority[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => {
+                    update("task", { id, priority: Evolu.NonEmptyString100.orThrow(p) });
+                    setShowPriorityPicker(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[#1a1a2e]/5 text-left"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: PRIORITY_COLORS[p].border }}
+                  />
+                  <span>
+                    {p === "none" ? "žádná" : p === "low" ? "nízká" : p === "medium" ? "střední" : "vysoká"}
+                  </span>
+                  {prio === p && <span className="ml-auto text-[#1a1a2e]/30">✓</span>}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

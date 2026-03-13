@@ -126,6 +126,21 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
     durationMinutes: number;
   } | null>(null);
 
+  // Live resize override for capacity bar updates
+  const [resizeOverride, setResizeOverride] = useState<{
+    id: string;
+    startMinutes: number;
+    endMinutes: number;
+  } | null>(null);
+
+  function handleResizeChange(blockId: string, liveStart: number | null, liveEnd: number | null) {
+    if (liveStart === null || liveEnd === null) {
+      setResizeOverride(null);
+    } else {
+      setResizeOverride({ id: blockId, startMinutes: liveStart, endMinutes: liveEnd });
+    }
+  }
+
   // Current drag payload (used during dragover to calculate ghost duration)
   const dragPayloadRef = useRef<DragPayload | null>(null);
 
@@ -256,7 +271,8 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(dayDate);
     dayEnd.setHours(23, 59, 59, 999);
-    return timeBlockRows
+
+    let planned = timeBlockRows
       .filter((b) => {
         if (!b.start) return false;
         const s = new Date(b.start);
@@ -264,8 +280,29 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
       })
       .reduce((sum, b) => {
         if (!b.start || !b.end) return sum;
+        if (resizeOverride && String(b.id) === resizeOverride.id) {
+          return sum + (resizeOverride.endMinutes - resizeOverride.startMinutes);
+        }
         return sum + Math.round((new Date(b.end).getTime() - new Date(b.start).getTime()) / 60000);
       }, 0);
+
+    // Adjust for active drag ghost
+    if (ghost) {
+      if (ghost.dayIndex === dayIndex) {
+        planned += ghost.durationMinutes;
+      }
+      if (dragPayloadRef.current?.type === "timeblock") {
+        const origBlock = timeBlockRows.find((b) => b.id === (dragPayloadRef.current as { type: "timeblock"; timeBlockId: string }).timeBlockId);
+        if (origBlock?.start && origBlock?.end) {
+          const origS = new Date(origBlock.start);
+          if (origS >= dayStart && origS <= dayEnd) {
+            planned -= Math.round((new Date(origBlock.end).getTime() - new Date(origBlock.start).getTime()) / 60000);
+          }
+        }
+      }
+    }
+
+    return Math.max(0, planned);
   }
 
   // Group timeblocks by day
@@ -454,6 +491,7 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
                     startMinutes={block.startMinutes}
                     durationMinutes={block.durationMinutes}
                     dayDate={block.dayDate}
+                    onResizeChange={handleResizeChange}
                   />
                 ))}
 
