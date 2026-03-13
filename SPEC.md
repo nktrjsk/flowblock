@@ -418,27 +418,27 @@ Na řádku každého kalendáře v sekci Kalendáře (viz 5.9):
 ## 7. MVP Scope — vrstvy implementace
 
 ### Vrstva 1: Datový model + základní UI
-- [ ] Evolu schéma (Tasks, TimeBlocks)
+- [x] Evolu schéma (Tasks, TimeBlocks)
 - [ ] Dashboard — "Co teď" blok, inbox, nadcházející, projekty, kapacitní lišta
-- [ ] Kalendářové sloupce (dnes + zítra) jako drop target
-- [ ] Týdenní pohled (sekundární, přepínatelný)
-- [ ] Drag tasku z inboxu do kalendáře (ghost + tooltip)
-- [ ] Drag time-blocku v kalendáři (přesun slot/den)
-- [ ] Drag time-blocku zpět do inboxu
-- [ ] Resize time-blocku (kruhové handles, 15min snap)
-- [ ] Barvy time-bloků dle priority
+- [x] Kalendářové sloupce (dnes + zítra) jako drop target
+- [x] Týdenní pohled (sekundární, přepínatelný)
+- [x] Drag tasku z inboxu do kalendáře (ghost + tooltip)
+- [x] Drag time-blocku v kalendáři (přesun slot/den)
+- [x] Drag time-blocku zpět do inboxu
+- [x] Resize time-blocku (kruhové handles, 15min snap)
+- [x] Barvy time-bloků dle priority
 - [ ] Splnění úkolu (checkbox → Done)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
-- [ ] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
-- [ ] Přidání veřejného ICS feedu (URL) → stažení a parsování → ExternalEvents
-- [ ] Zobrazení externích událostí v kalendářovém pohledu (dashed styl)
+- [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
+- [x] Přidání veřejného ICS feedu (URL) → stažení a parsování → ExternalEvents
+- [x] Zobrazení externích událostí v kalendářovém pohledu (dashed styl)
 - [ ] Inkrementální sync pro CalDAV (sync-token)
-- [ ] Polling pro ICS feedy (periodické přestahování, konfigurovatelný interval)
-- [ ] Sync tlačítko v Headeru (manuální sync všech kalendářů, spinning stav, chybová tečka) — viz sekce 5.10
-- [ ] Toast notifikace pro sync události (přidání kalendáře, manuální sync, chyby) — viz sekce 5.11
-- [ ] Per-kalendář sync tlačítko a persistent chybový stav v SettingsModal — viz sekce 5.9 a 5.11
-- [ ] Rozšíření Toast systému o typ `error` (červený, 6s, zavírací tlačítko)
+- [x] Polling pro ICS feedy (periodické přestahování, konfigurovatelný interval)
+- [x] Sync tlačítko v Headeru (manuální sync všech kalendářů, spinning stav, chybová tečka) — viz sekce 5.10
+- [x] Toast notifikace pro sync události (přidání kalendáře, manuální sync, chyby) — viz sekce 5.11
+- [x] Per-kalendář sync tlačítko a persistent chybový stav v SettingsModal — viz sekce 5.9 a 5.11
+- [x] Rozšíření Toast systému o typ `error` (červený, 6s, zavírací tlačítko)
 
 ### Vrstva 3: ADHD vylepšení
 - [ ] Varování při přeplánování dne
