@@ -42,6 +42,8 @@ export const Database = {
     // ISO 8601 datetime strings
     start: Evolu.NonEmptyString100,
     end: Evolu.NonEmptyString100,
+    // "none" | "low" | "medium" | "high" — block-level priority, overrides task priority
+    priority: Evolu.nullOr(Evolu.NonEmptyString100),
   },
   calendar: {
     id: CalendarId,

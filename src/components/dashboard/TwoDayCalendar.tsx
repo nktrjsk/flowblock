@@ -49,7 +49,7 @@ function getNowMinutes(): number {
 const timeBlocksQuery = evolu.createQuery((db) =>
   db
     .selectFrom("timeBlock")
-    .select(["id", "task_id", "title", "start", "end"])
+    .select(["id", "task_id", "title", "start", "end", "priority"])
     .where("isDeleted", "is", null)
     .orderBy("start", "asc"),
 );
@@ -291,7 +291,8 @@ export default function TwoDayCalendar() {
         const endMins = isoToMinutes(b.end ?? "", dayDate);
         return {
           ...b,
-          priority: task?.priority ?? null,
+          priority: (b.priority ?? task?.priority) ?? null,
+          taskTitle: task?.title ? String(task.title) : null,
           startMinutes: startMins,
           durationMinutes: Math.max(SNAP_MINUTES, endMins - startMins),
           dayDate,
@@ -452,6 +453,7 @@ export default function TwoDayCalendar() {
                     taskId={block.task_id ?? null}
                     title={block.title ?? ""}
                     priority={block.priority}
+                    taskTitle={block.taskTitle}
                     startMinutes={block.startMinutes}
                     durationMinutes={block.durationMinutes}
                     dayDate={block.dayDate}
