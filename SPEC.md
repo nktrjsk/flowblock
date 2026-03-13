@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.14.0 (2026-03-13)
+> **Verze dokumentu:** 0.15.0 (2026-03-14)
 > **Status:** Návrh MVP
 
 ---
@@ -237,6 +237,12 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 - Time-blocky: zbarveny dle priority (viz 5.5)
 - Externí CalDAV události: přerušovaný border, italic, vizuálně odlišené
 
+**Dark mode paleta:**
+- Pozadí: `#1a1a2e` (tmavá břidlice — stávající brand barva)
+- Povrch (karty, panely): `#252540`
+- Text primární: `#f5f0e8` (krémová — stávající brand barva)
+- Akcenty: zachovány (priority barvy z sekce 5.5 zůstávají nezměněny — dostatečný kontrast v obou režimech)
+
 ### 5.5 Barvy time-bloků dle priority
 
 | Priorita | Pozadí | Border | Text |
@@ -329,6 +335,9 @@ proto nezabírá místo v bottom tab baru.
 - Export owner key (tlačítko → stáhne soubor nebo zobrazí key k zkopírování)
 - Import owner key (tlačítko → file picker nebo paste input)
 - Varování při importu: "Importování jiného klíče přepíše lokální identitu"
+- Vlastní Evolu relay URL (textové pole; prázdné = výchozí Evolu relay `free.evoluhq.com`)
+  - Varování: "Změna relay URL odpojí synchronizaci s předchozím relay serverem"
+  - Tlačítko "Uložit" — okamžitě přepne relay; neuloží-li uživatel, zůstane původní URL
 
 *Kalendáře*
 - Seznam přidaných kalendářů (název, typ, barva, čas posledního syncu)
@@ -349,7 +358,12 @@ proto nezabírá místo v bottom tab baru.
   - Tlačítko **"Zrušit"** — zavře formulář bez uložení, bez potvrzovacího dialogu
 - Tlačítko "Přidat kalendář" (ICS feed nebo CalDAV)
 
-Další sekce (denní kapacita, vzhled...) budou doplněny postupně.
+*Vzhled*
+- Přepínač světlý / tmavý režim (toggle, default = světlý)
+- Systémový režim ("Řídit se systémem") jako třetí volba
+- Nastavení se uloží do localStorage (nezávisle na Evolu — jde o preferenci zařízení, ne data)
+
+Sekce denní kapacita bude doplněna postupně.
 
 ### 5.10 Sync tlačítko v Headeru
 
@@ -518,6 +532,8 @@ MVP nepodporuje prepojeni bloku na jiny ukol — to je mozne pres drag & drop v 
 - [ ] Kapacitní lišta responzivní při resize/drag — lokální live update bez zápisu do DB (viz sekce 5.6, 5.7)
 - [ ] Dashboard reaktivita — automatická aktualizace "Co teď" a "Nadcházející" každou minutu (viz sekce 5.2)
 - [ ] Detail time-bloku — popover (KONCEPT; implementace az po schvaleni prototypu, viz sekce 5.13)
+- [ ] Dark mode — přepínač v Nastavení, systémová detekce, localStorage persistence (viz sekce 5.4, 5.9)
+- [ ] Vlastní Evolu relay URL — konfigurace v Nastavení, Identita (viz sekce 5.9)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
 - [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
