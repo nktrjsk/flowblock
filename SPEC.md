@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.18.0 (2026-03-15)
+> **Verze dokumentu:** 0.19.0 (2026-03-15)
 > **Status:** Návrh MVP
 
 ---
@@ -347,9 +347,17 @@ proto nezabírá místo v bottom tab baru.
 - Export owner key (tlačítko → stáhne soubor nebo zobrazí key k zkopírování)
 - Import owner key (tlačítko → file picker nebo paste input)
 - Varování při importu: "Importování jiného klíče přepíše lokální identitu"
-- Vlastní Evolu relay URL (textové pole; prázdné = výchozí Evolu relay `free.evoluhq.com`)
-  - Varování: "Změna relay URL odpojí synchronizaci s předchozím relay serverem"
-  - Tlačítko "Uložit" — okamžitě přepne relay; neuloží-li uživatel, zůstane původní URL
+*Pokročilé*
+- **Vlastní Evolu relay URL** — textové pole, výchozí hodnota: `wss://free.evoluhq.com`
+  - Validace formátu: URL musí začínat `wss://` nebo `ws://`; jinak se zobrazí chybová hláška pod polem
+  - Badge vedle labelu zobrazuje stav připojení v reálném čase:
+    - "Kontroluji…" (spinner) — probíhá WebSocket probe
+    - "Dostupné" (zelená tečka) — server odpovídá
+    - "Nedostupné" (červená tečka) — server nedostupný
+  - Ověření se spouští s 500ms debouncem po každé změně v poli
+  - Prázdné pole = výchozí relay `free.evoluhq.com`
+  - Tlačítko "Uložit" — uloží URL do localStorage, aplikace se po 800ms restartuje
+  - Varování: "Změna relay URL odpojí synchronizaci s předchozím serverem."
 
 *Kalendáře*
 - Seznam přidaných kalendářů (název, typ, barva, čas posledního syncu)
@@ -634,7 +642,7 @@ resize operacích v kalendáři — v detail popovert není aktivní.*
 - [ ] Dashboard reaktivita — automatická aktualizace "Co teď" a "Nadcházející" každou minutu (viz sekce 5.2)
 - [ ] Detail time-bloku — popover (KONCEPT; implementace az po schvaleni prototypu, viz sekce 5.13)
 - [ ] Dark mode — přepínač v Nastavení, systémová detekce, localStorage persistence (viz sekce 5.4, 5.9)
-- [ ] Vlastní Evolu relay URL — konfigurace v Nastavení, Identita (viz sekce 5.9)
+- [x] Vlastní Evolu relay URL — konfigurace v Nastavení, Pokročilé (viz sekce 5.9)
 - [ ] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
