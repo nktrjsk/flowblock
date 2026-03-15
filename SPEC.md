@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.17.0 (2026-03-15)
+> **Verze dokumentu:** 0.17.1 (2026-03-15)
 > **Status:** Návrh MVP
 
 ---
@@ -471,7 +471,9 @@ Kliknuti na plochu time-bloku (ne na drag handle ani resize handle) otevire deta
 
 #### Forma
 
-**Popover** se otevírá na místě kliknutí (pozice kurzoru v momentě kliknutí na blok). Není to fullscreen overlay ani slide-in panel — popover zachovává kontext kalendáře viditelný v pozadí. Automaticky se přizpůsobí okraji viewportu (flip horizontálně / vertikálně pokud by přetekl). Zavře se kliknutím mimo nebo klávesou Escape.
+**Popover** se otevírá u pozice kurzoru v momentě kliknutí na blok. Není to fullscreen overlay ani slide-in panel — popover zachovává kontext kalendáře viditelný v pozadí. Zavře se kliknutím mimo nebo klávesou Escape.
+
+**Pozicování:** horizontálně centrovaný na X souřadnici kurzoru; vertikálně zarovnaný k Y souřadnici kurzoru s offsetem −16 px (mírně nad místem kliknutí). Clamped k okrajům viewportu — minimálně 8 px od každého okraje.
 
 Na mobilni verzi se detail zobrazuje jako **bottom sheet** (ne popover).
 
