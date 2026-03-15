@@ -4,7 +4,8 @@ import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
 import { PRIORITY_COLORS, Priority } from "../../constants";
 import * as Evolu from "@evolu/common";
-import { useTimeFormat, formatMinutes, type TimeFormat } from "../../contexts/TimeFormatContext";
+import { useTimeFormat } from "../../contexts/TimeFormatContext";
+import TimeSegmentInput from "./TimeSegmentInput";
 
 const POPOVER_WIDTH = 272;
 
@@ -21,36 +22,9 @@ interface TimeBlockPopoverProps {
   onClose: () => void;
 }
 
-function minutesToTimeStr(minutes: number, format: TimeFormat): string {
-  return formatMinutes(minutes, format);
-}
-
-function timeStrToMinutes(str: string, format: TimeFormat): number | null {
-  const s = str.trim();
-  if (format === "12h") {
-    const match = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (!match) return null;
-    let h = parseInt(match[1], 10);
-    const m = parseInt(match[2], 10);
-    const period = match[3].toUpperCase();
-    if (period === "AM" && h === 12) h = 0;
-    if (period === "PM" && h !== 12) h += 12;
-    return h * 60 + m;
-  }
-  const parts = s.split(":");
-  if (parts.length !== 2) return null;
-  const h = parseInt(parts[0], 10);
-  const m = parseInt(parts[1], 10);
-  if (isNaN(h) || isNaN(m)) return null;
-  return h * 60 + m;
-}
-
-function snapTo15(min: number): number {
-  return Math.round(min / 15) * 15;
-}
-
-function minutesToIso(date: Date, minutes: number): string {
+function minutesToIso(date: Date, minutes: number, dayOffset = 0): string {
   const d = new Date(date);
+  d.setDate(d.getDate() + dayOffset);
   d.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
   return d.toISOString();
 }
@@ -70,9 +44,15 @@ export default function TimeBlockPopover({
   const { update } = useEvolu();
   const { timeFormat } = useTimeFormat();
   const [titleValue, setTitleValue] = useState(title);
-  const [startValue, setStartValue] = useState(() => minutesToTimeStr(startMinutes, timeFormat));
-  const [endValue, setEndValue] = useState(() => minutesToTimeStr(endMinutes, timeFormat));
+
+  // Normalize end to day offset + minutes-within-day
+  const [startMin, setStartMin] = useState(startMinutes % (24 * 60));
+  const [endMin, setEndMin] = useState(endMinutes % (24 * 60));
+  const [endDayOffset, setEndDayOffset] = useState(Math.floor(endMinutes / (24 * 60)));
   const [prioValue, setPrioValue] = useState<Priority>((priority ?? "none") as Priority);
+
+  const endAbsolute = endDayOffset * 1440 + endMin;
+  const isValid = endAbsolute > startMin;
 
   // Positioning: prefer left of block, fallback right
   const spaceLeft = anchorRect.left;
@@ -81,7 +61,7 @@ export default function TimeBlockPopover({
       ? anchorRect.left - POPOVER_WIDTH - 8
       : anchorRect.right + 8;
 
-  const estimatedHeight = 280;
+  const estimatedHeight = 300;
   const top = Math.max(8, Math.min(anchorRect.top, window.innerHeight - estimatedHeight - 8));
 
   useEffect(() => {
@@ -93,30 +73,22 @@ export default function TimeBlockPopover({
   }, [onClose]);
 
   function handleSave() {
+    if (!isValid) return;
+
     const trimmed = titleValue.trim();
     if (trimmed) {
       const r = Evolu.NonEmptyString1000.from(trimmed);
       if (r.ok) update("timeBlock", { id, title: r.value });
     }
 
-    const startMin = timeStrToMinutes(startValue, timeFormat);
-    if (startMin !== null) {
-      const snapped = Math.max(0, Math.min(snapTo15(startMin), 23 * 60 + 45));
-      update("timeBlock", {
-        id,
-        start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, snapped)),
-      });
-    }
-
-    const endMin = timeStrToMinutes(endValue, timeFormat);
-    if (endMin !== null) {
-      const snapped = Math.max(15, Math.min(snapTo15(endMin), 24 * 60));
-      update("timeBlock", {
-        id,
-        end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, snapped)),
-      });
-    }
-
+    update("timeBlock", {
+      id,
+      start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMin, 0)),
+    });
+    update("timeBlock", {
+      id,
+      end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMin, endDayOffset)),
+    });
     update("timeBlock", {
       id,
       priority: Evolu.NonEmptyString100.orThrow(prioValue),
@@ -127,17 +99,13 @@ export default function TimeBlockPopover({
 
   function handleDelete() {
     update("timeBlock", { id, isDeleted: 1 });
-    if (taskId) {
-      update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
-    }
+    if (taskId) update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
     onClose();
   }
 
   function handleDisconnect() {
     update("timeBlock", { id, task_id: null });
-    if (taskId) {
-      update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
-    }
+    if (taskId) update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
     onClose();
   }
 
@@ -174,24 +142,56 @@ export default function TimeBlockPopover({
         />
 
         {/* Time row */}
-        <div className="flex items-center gap-2 text-xs text-[#1a1a2e]/60">
-          <span className="shrink-0">Začátek</span>
-          <input
-            type="text"
-            value={startValue}
-            onChange={(e) => setStartValue(e.target.value)}
-            placeholder={timeFormat === "12h" ? "8:00 AM" : "08:00"}
-            className="border border-[#1a1a2e]/15 rounded px-2 py-1 text-xs bg-transparent outline-none focus:border-[#1a1a2e]/40 w-[90px]"
-          />
-          <span className="shrink-0">Konec</span>
-          <input
-            type="text"
-            value={endValue}
-            onChange={(e) => setEndValue(e.target.value)}
-            placeholder={timeFormat === "12h" ? "9:00 AM" : "09:00"}
-            className="border border-[#1a1a2e]/15 rounded px-2 py-1 text-xs bg-transparent outline-none focus:border-[#1a1a2e]/40 w-[90px]"
-          />
+        <div className="flex gap-2">
+          <div className="flex-1 flex flex-col gap-1">
+            <span className="text-[10px] text-[#1a1a2e]/40">Začátek</span>
+            <TimeSegmentInput
+              totalMinutes={startMin}
+              format={timeFormat}
+              onChange={setStartMin}
+            />
+          </div>
+          <div className="flex-1 flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#1a1a2e]/40">Konec</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setEndDayOffset(Math.max(0, endDayOffset - 1))}
+                  disabled={endDayOffset === 0}
+                  className="text-[10px] text-[#1a1a2e]/35 hover:text-[#1a1a2e]/70 disabled:opacity-20 transition-colors leading-none"
+                  title="O den dříve"
+                >
+                  −1d
+                </button>
+                <button
+                  onClick={() => setEndDayOffset(endDayOffset + 1)}
+                  className="text-[10px] text-[#1a1a2e]/35 hover:text-[#1a1a2e]/70 transition-colors leading-none"
+                  title="O den později"
+                >
+                  +1d
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <TimeSegmentInput
+                totalMinutes={endMin}
+                format={timeFormat}
+                onChange={setEndMin}
+                hasError={!isValid}
+              />
+              {endDayOffset > 0 && (
+                <span className="text-[9px] text-[#1a1a2e]/50 bg-[#1a1a2e]/8 rounded px-1 py-0.5 shrink-0 leading-none">
+                  +{endDayOffset}d
+                </span>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Validation error */}
+        {!isValid && (
+          <p className="text-[10px] text-red-500 -mt-1.5">Konec musí být po začátku</p>
+        )}
 
         {/* Priority */}
         <div className="flex items-center gap-1">
@@ -246,7 +246,12 @@ export default function TimeBlockPopover({
           </button>
           <button
             onClick={handleSave}
-            className="text-xs px-3 py-1.5 bg-[#1a1a2e] text-[#f5f0e8] rounded-lg hover:bg-[#1a1a2e]/85 transition-colors"
+            disabled={!isValid}
+            className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+              isValid
+                ? "bg-[#1a1a2e] text-[#f5f0e8] hover:bg-[#1a1a2e]/85"
+                : "bg-[#1a1a2e]/15 text-[#1a1a2e]/30 cursor-not-allowed"
+            }`}
           >
             Hotovo
           </button>
