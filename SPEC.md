@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.16.0 (2026-03-15)
+> **Verze dokumentu:** 0.17.0 (2026-03-15)
 > **Status:** Návrh MVP
 
 ---
@@ -488,7 +488,7 @@ Na mobilni verzi se detail zobrazuje jako **bottom sheet** (ne popover).
 
 Editovatelne parametry:
 - `title` — inline textovy input
-- `start` a `end` — time pickery (HH:MM), snap na 15 min
+- `start` a `end` — time pickery (segmentovaný vstup HH:MM), viz sekce 5.13.1
 - `priority` — stejny inline vzor jako v sekci 5.12
 - Propojeny ukol — zobrazeni nazvu (`task_id` reference); tlacitko pro odpojeni bloku od ukolu
 
@@ -502,6 +502,90 @@ Editovatelne parametry:
 | Zmena priority bloku | Priority bloku a ukolu jsou nezavisle; zmena bloku neovlivni ukol |
 
 MVP nepodporuje prepojeni bloku na jiny ukol — to je mozne pres drag & drop v kalendari.
+
+### 5.13.1 Time input — segmentovaný vstup
+
+Time inputy pro `start` a `end` v detail popovert používají **segmentovaný formát**
+(ne volný text input). Komponenta zobrazuje segmenty oddělené statickým oddělovačem.
+
+Time blocky nejsou omezeny na jediný den — blok může začínat jeden den a končit
+druhý (overnight nebo vícedenní blok).
+
+**24h formát:**
+
+```
+[ 14 ] : [ 00 ]
+  HH       MM
+```
+
+**12h formát (AM/PM):**
+
+```
+[ 2 ] : [ 00 ]  [ AM ]
+ HH      MM     perioda
+```
+
+#### Interakce segmentů
+
+- **Focus:** kliknutí na libovolný segment ho aktivuje (vizuální highlight; segment
+  se chová jako spinner, ne jako text field — systémový kurzor skrytý)
+- **Šipka nahoru / dolů:**
+  - Segment HH: změní hodinu o ±1 (rozsah 0–23 v 24h; 1–12 v 12h); zastaví se
+    na hranici, nepřetéká
+  - Segment MM: změní minuty o ±5 (rozsah 0–59); zastaví se na hranici,
+    nepřetéká do hodin
+  - Segment AM/PM (pouze 12h): přepíná mezi AM a PM
+- **Šipka vlevo / vpravo:** přepíná focus mezi segmenty (HH → MM → AM/PM a zpět)
+- **Přímý vstup číslic:** přepíše hodnotu segmentu; po vyplnění dvou číslic se
+  focus automaticky přesune na další segment; libovolná hodnota je platná
+  (žádný snap, žádné omezení na konkrétní minuty)
+- **Tab / Enter v segmentu MM (nebo AM/PM):** přesune focus na první segment
+  pole "Konec"
+- **Tab / Enter v posledním segmentu pole "Konec":** submittuje popover
+  (ekvivalent tlačítka "Hotovo")
+- **Prázdný segment při ztrátě focusu:** tiché vrácení na předchozí platnou
+  hodnotu — žádná chybová hláška, žádná ztráta editace
+- **Zero-padding:** segment HH i MM se vždy zobrazí jako dvouciferné číslo
+  (např. "8" → "08" po opuštění segmentu)
+
+#### Overnight a vícedenní bloky — datum indikátor
+
+Pokud je end HH:MM < start HH:MM (nebo end HH:MM = start HH:MM), systém
+předpokládá, že blok přechází přes půlnoc. Vedle pole "Konec" se zobrazí
+malý badge **"+1 den"** (nebo konkrétní datum konce, např. "út 18. 3.").
+
+Pro vícedenní bloky (end je více než jeden den po startu) lze posunout
+datum konce tlačítky **"+1 den"** a **"−1 den"** vedle pole "Konec".
+Badge se aktualizuje a zobrazuje výsledné datum.
+
+Speciální případ: hodnota **24:00** v poli "Konec" je povolena (výhradně
+jako HH=24, MM=00) a interpretuje se jako 00:00 následujícího dne — tedy
+overnight blok končící přesně na půlnoci. Interně se uloží jako 00:00
++1 den.
+
+#### Validace
+
+**Hranice segmentů (tiché clamping):**
+- Segment HH: rozsah 0–23 (výjimka: hodnota 24 povolena pouze v poli
+  "Konec" a pouze s MM=00, viz výše); hodnota mimo rozsah se tiše ořízne
+  bez hlášky
+- Segment MM: rozsah 0–59; hodnota mimo rozsah se tiše ořízne bez hlášky
+- Clamping proběhne při ztrátě focusu ze segmentu nebo při submitu
+
+**Logická validace (vizuální, neblokující):**
+- **Podmínka:** `end_datetime > start_datetime` — porovnání probíhá na
+  absolutních timestamp hodnotách (datum + čas), ne jen na HH:MM; overnight
+  a vícedenní bloky jsou tedy automaticky platné pokud end datum > start datum
+- **Při porušení:** pole "Konec" dostane červený border a červený podtext
+  "Konec musí být po začátku"; tlačítko "Hotovo" je disabled
+- Uživatel zůstává v popovert a může editaci dokončit
+
+**Co se záměrně nevaliduje:**
+- Minimální délka bloku — žádné omezení; blok může být libovolně krátký
+  pokud `end_datetime > start_datetime`
+
+*Poznámka: 15minutový snap (SNAP_MINUTES) se aplikuje výhradně při drag &
+resize operacích v kalendáři — v detail popovert není aktivní.*
 
 ---
 
