@@ -18,7 +18,7 @@ interface TimeBlockPopoverProps {
   taskId: TaskId | null;
   taskTitle: string | null;
   dayDate: Date;
-  anchorRect: DOMRect;
+  anchorPos: { x: number; y: number };
   onClose: () => void;
 }
 
@@ -38,7 +38,7 @@ export default function TimeBlockPopover({
   taskId,
   taskTitle,
   dayDate,
-  anchorRect,
+  anchorPos,
   onClose,
 }: TimeBlockPopoverProps) {
   const { update } = useEvolu();
@@ -54,15 +54,13 @@ export default function TimeBlockPopover({
   const endAbsolute = endDayOffset * 1440 + endMin;
   const isValid = endAbsolute > startMin;
 
-  // Positioning: prefer left of block, fallback right
-  const spaceLeft = anchorRect.left;
-  const left =
-    spaceLeft >= POPOVER_WIDTH + 8
-      ? anchorRect.left - POPOVER_WIDTH - 8
-      : anchorRect.right + 8;
-
+  // Positioning: open near cursor, prefer right side, fallback left
   const estimatedHeight = 300;
-  const top = Math.max(8, Math.min(anchorRect.top, window.innerHeight - estimatedHeight - 8));
+  const left = Math.max(8, Math.min(
+    Math.round(anchorPos.x - POPOVER_WIDTH / 2),
+    window.innerWidth - POPOVER_WIDTH - 8
+  ));
+  const top = Math.max(8, Math.min(anchorPos.y - 16, window.innerHeight - estimatedHeight - 8));
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

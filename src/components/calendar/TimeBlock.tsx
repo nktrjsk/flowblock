@@ -55,7 +55,7 @@ export default function TimeBlock({
     endMinutes: number;
   } | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const [anchorPos, setAnchorPos] = useState<{ x: number; y: number } | null>(null);
   const { update } = useEvolu();
   const { timeFormat } = useTimeFormat();
   const blockRef = useRef<HTMLDivElement>(null);
@@ -111,11 +111,8 @@ export default function TimeBlock({
     if (justDragged.current) return;
     if (resizingRef.current) return;
     e.stopPropagation();
-    const rect = blockRef.current?.getBoundingClientRect();
-    if (rect) {
-      setAnchorRect(rect);
-      setPopoverOpen(true);
-    }
+    setAnchorPos({ x: e.clientX, y: e.clientY });
+    setPopoverOpen(true);
   }
 
   function handleResizeMouseDown(e: React.MouseEvent, edge: ResizeEdge) {
@@ -226,7 +223,7 @@ export default function TimeBlock({
         </div>
       </div>
 
-      {popoverOpen && anchorRect && (
+      {popoverOpen && anchorPos && (
         <TimeBlockPopover
           id={id}
           title={title}
@@ -236,7 +233,7 @@ export default function TimeBlock({
           taskId={taskId}
           taskTitle={taskTitle ?? null}
           dayDate={dayDate}
-          anchorRect={anchorRect}
+          anchorPos={anchorPos}
           onClose={() => setPopoverOpen(false)}
         />
       )}
