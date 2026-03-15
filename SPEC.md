@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.19.0 (2026-03-15)
+> **Verze dokumentu:** 0.19.1 (2026-03-16)
 > **Status:** Návrh MVP
 
 ---
@@ -637,13 +637,13 @@ resize operacích v kalendáři — v detail popovert není aktivní.*
 - [x] Resize time-blocku (kruhové handles, 15min snap)
 - [x] Barvy time-bloků dle priority
 - [x] Splnění úkolu (checkbox → Done)
-- [ ] Priority UI — barevný pruh v inboxu + inline popover pro nastavení (viz sekce 5.12)
-- [ ] Kapacitní lišta responzivní při resize/drag — lokální live update bez zápisu do DB (viz sekce 5.6, 5.7)
-- [ ] Dashboard reaktivita — automatická aktualizace "Co teď" a "Nadcházející" každou minutu (viz sekce 5.2)
-- [ ] Detail time-bloku — popover (KONCEPT; implementace az po schvaleni prototypu, viz sekce 5.13)
-- [ ] Dark mode — přepínač v Nastavení, systémová detekce, localStorage persistence (viz sekce 5.4, 5.9)
+- [x] Priority UI — barevný pruh v inboxu + inline popover pro nastavení (viz sekce 5.12)
+- [x] Kapacitní lišta responzivní při resize/drag — lokální live update bez zápisu do DB (viz sekce 5.6, 5.7)
+- [x] Dashboard reaktivita — automatická aktualizace "Co teď" a "Nadcházející" každou minutu (viz sekce 5.2)
+- [x] Detail time-bloku — popover (viz sekce 5.13)
+- [x] Dark mode — přepínač v Nastavení, systémová detekce, localStorage persistence (viz sekce 5.4, 5.9)
 - [x] Vlastní Evolu relay URL — konfigurace v Nastavení, Pokročilé (viz sekce 5.9)
-- [ ] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
+- [x] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
 - [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
@@ -660,7 +660,7 @@ resize operacích v kalendáři — v detail popovert není aktivní.*
 - [ ] Varování při přeplánování dne
 - [ ] Tiché přesunutí nesplněných úkolů na další den
 - [ ] Animace/zvuky při splnění
-- [ ] Notifikace přechodů mezi time-blocky
+- [x] Notifikace přechodů mezi time-blocky (viz useBlockTransitionNotifications)
 
 ### Budoucí rozšíření (mimo MVP)
 - Command bar s natural language parsing
@@ -684,10 +684,10 @@ resize operacích v kalendáři — v detail popovert není aktivní.*
 
 ## 8. Otevřené otázky
 
-- [ ] Konkrétní open-source licence (WTFPL nebo jiná copyleft, ne GPL)
+- [x] Konkrétní open-source licence — WTFPL
 - [ ] Název projektu (FlowBlock je pracovní)
-- [ ] Ext. kalendáře — prozkoumat JS/TS ICS parsery (ical.js?) a CalDAV fetch přístup
-- [ ] Styling framework
+- [x] Ext. kalendáře — JS/TS ICS parser: ical.js (implementováno)
+- [x] Styling framework — Tailwind CSS
 - [ ] Deployment strategie — PWA jako primární mobilní/desktop řešení, statický hosting
 - [ ] Testovací CalDAV server pro vývoj (Radicale? Baikal?)
 
