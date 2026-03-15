@@ -9,6 +9,7 @@ import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calenda
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
 import { NOTIFICATIONS_ENABLED_KEY } from "../../constants";
 import { useToast } from "../ui/Toast";
+import { useTimeFormat } from "../../contexts/TimeFormatContext";
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -95,6 +96,7 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
 
   // Advanced
   const [corsProxy, setCorsProxyState] = useState(() => getCorsProxy());
+  const { timeFormat, setTimeFormat } = useTimeFormat();
 
   // Notifications
   const [notificationsEnabled, setNotificationsEnabled] = useState(
@@ -529,6 +531,32 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
               </div>
             </div>
           )}
+        </section>
+
+        {/* === Appearance section === */}
+        <section className="mt-6">
+          <h3 className="text-xs uppercase tracking-wider text-[#1a1a2e]/40 mb-3">Vzhled</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[#1a1a2e]/80">Formát času</p>
+              <p className="text-xs text-[#1a1a2e]/40 mt-0.5">Platí pro všechna časová zobrazení v aplikaci.</p>
+            </div>
+            <div className="flex rounded-lg border border-[#1a1a2e]/15 overflow-hidden shrink-0">
+              {(["24h", "12h"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setTimeFormat(f)}
+                  className={`px-3 py-1.5 text-xs transition-colors ${
+                    timeFormat === f
+                      ? "bg-[#1a1a2e] text-[#f5f0e8]"
+                      : "bg-transparent text-[#1a1a2e]/50 hover:bg-[#1a1a2e]/5"
+                  }`}
+                >
+                  {f === "24h" ? "24h" : "AM/PM"}
+                </button>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* === Notifications section === */}

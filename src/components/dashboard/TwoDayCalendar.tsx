@@ -13,6 +13,7 @@ import TimeBlockComponent from "../calendar/TimeBlock";
 import ExternalEvent from "../calendar/ExternalEvent";
 import DayCapacityBars from "../calendar/DayCapacityBars";
 import * as Evolu from "@evolu/common";
+import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
 
 const TIME_COLUMN_WIDTH = 48; // px
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -71,6 +72,7 @@ const externalEventsQuery = evolu.createQuery((db) =>
 
 export default function TwoDayCalendar() {
   const { insert, update } = useEvolu();
+  const { timeFormat } = useTimeFormat();
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -466,9 +468,7 @@ export default function TwoDayCalendar() {
                   ghost &&
                   (() => {
                     const endMin = ghost.startMinutes + ghost.durationMinutes;
-                    const label =
-                      `${String(Math.floor(ghost.startMinutes / 60)).padStart(2, "0")}:${String(ghost.startMinutes % 60).padStart(2, "0")}` +
-                      `–${String(Math.floor(endMin / 60) % 24).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+                    const label = `${formatMinutes(ghost.startMinutes, timeFormat)}–${formatMinutes(endMin, timeFormat)}`;
                     return (
                       <div
                         style={{

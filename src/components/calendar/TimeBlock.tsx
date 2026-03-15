@@ -13,6 +13,7 @@ import {
 } from "../../constants";
 import * as Evolu from "@evolu/common";
 import TimeBlockPopover from "./TimeBlockPopover";
+import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
 
 interface TimeBlockProps {
   id: TimeBlockId;
@@ -23,11 +24,6 @@ interface TimeBlockProps {
   durationMinutes: number;
 }
 
-function formatTime(totalMinutes: number): string {
-  const h = Math.floor(totalMinutes / 60) % 24;
-  const m = totalMinutes % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
 
 function minutesToIso(date: Date, minutes: number): string {
   const d = new Date(date);
@@ -61,6 +57,7 @@ export default function TimeBlock({
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const { update } = useEvolu();
+  const { timeFormat } = useTimeFormat();
   const blockRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef<{
     edge: ResizeEdge;
@@ -212,7 +209,7 @@ export default function TimeBlock({
         {/* Content */}
         <div className="h-full flex flex-col justify-start pt-0.5 px-1.5 overflow-hidden">
           <span className="text-[10px] opacity-60 leading-none">
-            {formatTime(displayStart)}–{formatTime(endMinutes)}
+            {formatMinutes(displayStart, timeFormat)}–{formatMinutes(endMinutes, timeFormat)}
           </span>
           <span className="text-xs font-medium leading-tight mt-0.5 truncate">
             {title}

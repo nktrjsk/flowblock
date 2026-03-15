@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@evolu/react";
 import { evolu } from "../../db/evolu";
+import { useTimeFormat, formatIso } from "../../contexts/TimeFormatContext";
 
 const timeBlocksQuery = evolu.createQuery((db) =>
   db
@@ -24,13 +25,9 @@ function getTodayBlocks(rows: Row[]): Row[] {
   });
 }
 
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
 export default function NowBlock() {
   const [now, setNow] = useState(() => new Date());
+  const { timeFormat } = useTimeFormat();
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
@@ -88,7 +85,7 @@ export default function NowBlock() {
         <div className="text-sm text-[#1a1a2e]/70">
           Další:{" "}
           <span className="font-medium text-[#1a1a2e]">{next.title ?? "Blok"}</span>
-          {next.start && ` v ${formatTime(next.start)}`}
+          {next.start && ` v ${formatIso(next.start, timeFormat)}`}
         </div>
       ) : (
         <div className="text-sm text-[#1a1a2e]/50">Volný čas</div>

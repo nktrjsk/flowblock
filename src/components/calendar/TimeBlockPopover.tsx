@@ -4,6 +4,7 @@ import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
 import { PRIORITY_COLORS, Priority } from "../../constants";
 import * as Evolu from "@evolu/common";
+import { useTimeFormat, formatMinutes, type TimeFormat } from "../../contexts/TimeFormatContext";
 
 const POPOVER_WIDTH = 272;
 
@@ -20,14 +21,23 @@ interface TimeBlockPopoverProps {
   onClose: () => void;
 }
 
-function minutesToTimeStr(minutes: number): string {
-  const h = Math.floor(minutes / 60) % 24;
-  const m = minutes % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+function minutesToTimeStr(minutes: number, format: TimeFormat): string {
+  return formatMinutes(minutes, format);
 }
 
-function timeStrToMinutes(str: string): number | null {
-  const parts = str.split(":");
+function timeStrToMinutes(str: string, format: TimeFormat): number | null {
+  const s = str.trim();
+  if (format === "12h") {
+    const match = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return null;
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const period = match[3].toUpperCase();
+    if (period === "AM" && h === 12) h = 0;
+    if (period === "PM" && h !== 12) h += 12;
+    return h * 60 + m;
+  }
+  const parts = s.split(":");
   if (parts.length !== 2) return null;
   const h = parseInt(parts[0], 10);
   const m = parseInt(parts[1], 10);
@@ -58,9 +68,10 @@ export default function TimeBlockPopover({
   onClose,
 }: TimeBlockPopoverProps) {
   const { update } = useEvolu();
+  const { timeFormat } = useTimeFormat();
   const [titleValue, setTitleValue] = useState(title);
-  const [startValue, setStartValue] = useState(minutesToTimeStr(startMinutes));
-  const [endValue, setEndValue] = useState(minutesToTimeStr(endMinutes));
+  const [startValue, setStartValue] = useState(() => minutesToTimeStr(startMinutes, timeFormat));
+  const [endValue, setEndValue] = useState(() => minutesToTimeStr(endMinutes, timeFormat));
   const [prioValue, setPrioValue] = useState<Priority>((priority ?? "none") as Priority);
 
   // Positioning: prefer left of block, fallback right
@@ -88,7 +99,7 @@ export default function TimeBlockPopover({
       if (r.ok) update("timeBlock", { id, title: r.value });
     }
 
-    const startMin = timeStrToMinutes(startValue);
+    const startMin = timeStrToMinutes(startValue, timeFormat);
     if (startMin !== null) {
       const snapped = Math.max(0, Math.min(snapTo15(startMin), 23 * 60 + 45));
       update("timeBlock", {
@@ -97,7 +108,7 @@ export default function TimeBlockPopover({
       });
     }
 
-    const endMin = timeStrToMinutes(endValue);
+    const endMin = timeStrToMinutes(endValue, timeFormat);
     if (endMin !== null) {
       const snapped = Math.max(15, Math.min(snapTo15(endMin), 24 * 60));
       update("timeBlock", {
@@ -166,16 +177,18 @@ export default function TimeBlockPopover({
         <div className="flex items-center gap-2 text-xs text-[#1a1a2e]/60">
           <span className="shrink-0">Začátek</span>
           <input
-            type="time"
+            type="text"
             value={startValue}
             onChange={(e) => setStartValue(e.target.value)}
+            placeholder={timeFormat === "12h" ? "8:00 AM" : "08:00"}
             className="border border-[#1a1a2e]/15 rounded px-2 py-1 text-xs bg-transparent outline-none focus:border-[#1a1a2e]/40 w-[90px]"
           />
           <span className="shrink-0">Konec</span>
           <input
-            type="time"
+            type="text"
             value={endValue}
             onChange={(e) => setEndValue(e.target.value)}
+            placeholder={timeFormat === "12h" ? "9:00 AM" : "09:00"}
             className="border border-[#1a1a2e]/15 rounded px-2 py-1 text-xs bg-transparent outline-none focus:border-[#1a1a2e]/40 w-[90px]"
           />
         </div>

@@ -7,6 +7,7 @@ import WeekCalendar from "./components/calendar/WeekCalendar";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import MobileLayout from "./components/mobile/MobileLayout";
 import { ToastProvider, useToast } from "./components/ui/Toast";
+import { TimeFormatProvider } from "./contexts/TimeFormatContext";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useCalendarSync } from "./hooks/useCalendarSync";
 import { useDayRollover } from "./hooks/useDayRollover";
@@ -92,6 +93,7 @@ function AppContent() {
 export default function App() {
   return (
     <EvoluProvider value={evolu}>
+      <TimeFormatProvider>
       <ToastProvider>
         <Suspense
           fallback={
@@ -103,6 +105,7 @@ export default function App() {
           <AppContent />
         </Suspense>
       </ToastProvider>
+      </TimeFormatProvider>
     </EvoluProvider>
   );
 }

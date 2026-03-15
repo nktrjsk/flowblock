@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@evolu/react";
 import { evolu } from "../../db/evolu";
+import { useTimeFormat, formatIso } from "../../contexts/TimeFormatContext";
 
 const timeBlocksQuery = evolu.createQuery((db) =>
   db
@@ -12,13 +13,9 @@ const timeBlocksQuery = evolu.createQuery((db) =>
 
 type Row = { id: string; title: string | null; start: string | null; end: string | null };
 
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
 export default function UpcomingList() {
   const [now, setNow] = useState(() => new Date());
+  const { timeFormat } = useTimeFormat();
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
@@ -54,7 +51,7 @@ export default function UpcomingList() {
               className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-[#1a1a2e]/5"
             >
               <span className="text-xs text-[#1a1a2e]/50 shrink-0 w-10">
-                {b.start ? formatTime(b.start) : ""}
+                {b.start ? formatIso(b.start, timeFormat) : ""}
               </span>
               <span className="text-xs text-[#1a1a2e] truncate">{b.title ?? "Blok"}</span>
             </div>
