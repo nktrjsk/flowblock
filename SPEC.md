@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.17.1 (2026-03-15)
+> **Verze dokumentu:** 0.18.0 (2026-03-15)
 > **Status:** Návrh MVP
 
 ---
@@ -241,9 +241,11 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 - Pozadí: `#1a1a2e` (tmavá břidlice — stávající brand barva)
 - Povrch (karty, panely): `#252540`
 - Text primární: `#f5f0e8` (krémová — stávající brand barva)
-- Akcenty: zachovány (priority barvy z sekce 5.5 zůstávají nezměněny — dostatečný kontrast v obou režimech)
+- Akcenty: priority barvy mají samostatné dark mode varianty (viz sekce 5.5)
 
 ### 5.5 Barvy time-bloků dle priority
+
+#### Light mode
 
 | Priorita | Pozadí | Border | Text |
 |---|---|---|---|
@@ -252,6 +254,16 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 | `low` | `#dbeafe` | `#60a5fa` | `#1e3a8a` |
 | `none` | `#f1f5f9` | `#94a3b8` | `#334155` |
 | external | `#f5f0e8` | `#1a1a2e55` dashed | `#1a1a2e66` |
+
+#### Dark mode
+
+| Priorita | Pozadí | Border | Text |
+|---|---|---|---|
+| `high` | `#4a2222` | `#f87171` | `#fca5a5` |
+| `medium` | `#493614` | `#f59e0b` | `#fcd34d` |
+| `low` | `#1e2d4a` | `#60a5fa` | `#93c5fd` |
+| `none` | `#2a2c45` | `#475569` | `#94a3b8` |
+| external | `#252540` | `#f5f0e855` dashed | `#f5f0e866` |
 
 ### 5.6 Interakce
 
