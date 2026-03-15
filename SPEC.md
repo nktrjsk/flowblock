@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.15.0 (2026-03-14)
+> **Verze dokumentu:** 0.16.0 (2026-03-15)
 > **Status:** Návrh MVP
 
 ---
@@ -362,6 +362,9 @@ proto nezabírá místo v bottom tab baru.
 - Přepínač světlý / tmavý režim (toggle, default = světlý)
 - Systémový režim ("Řídit se systémem") jako třetí volba
 - Nastavení se uloží do localStorage (nezávisle na Evolu — jde o preferenci zařízení, ne data)
+- Formát času: přepínač `24h` / `12h (AM/PM)` (default = 24h)
+  - Projeví se všude kde se zobrazuje čas: time-blocky v kalendáři, time pickery v detail popovert, "Co teď" / "Nadcházející" v dashboardu, tooltip při dragu (HH:MM – HH:MM)
+  - Uložení do localStorage (preference zařízení)
 
 Sekce denní kapacita bude doplněna postupně.
 
@@ -468,7 +471,7 @@ Kliknuti na plochu time-bloku (ne na drag handle ani resize handle) otevire deta
 
 #### Forma
 
-**Popover** ukotven na bloku — preferovane vlevo od bloku, pokud neni misto tak vpravo. Neni to fullscreen overlay ani slide-in panel — popover zachovava kontext kalendare viditelny v pozadi. Zavre se kliknutim mimo nebo klavesou Escape.
+**Popover** se otevírá na místě kliknutí (pozice kurzoru v momentě kliknutí na blok). Není to fullscreen overlay ani slide-in panel — popover zachovává kontext kalendáře viditelný v pozadí. Automaticky se přizpůsobí okraji viewportu (flip horizontálně / vertikálně pokud by přetekl). Zavře se kliknutím mimo nebo klávesou Escape.
 
 Na mobilni verzi se detail zobrazuje jako **bottom sheet** (ne popover).
 
@@ -534,6 +537,7 @@ MVP nepodporuje prepojeni bloku na jiny ukol — to je mozne pres drag & drop v 
 - [ ] Detail time-bloku — popover (KONCEPT; implementace az po schvaleni prototypu, viz sekce 5.13)
 - [ ] Dark mode — přepínač v Nastavení, systémová detekce, localStorage persistence (viz sekce 5.4, 5.9)
 - [ ] Vlastní Evolu relay URL — konfigurace v Nastavení, Identita (viz sekce 5.9)
+- [ ] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
 - [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
@@ -563,6 +567,8 @@ MVP nepodporuje prepojeni bloku na jiny ukol — to je mozne pres drag & drop v 
 - **Plugin systém** (viz sekce 15)
 - **Lokální bridge API** (viz sekce 16)
 - **Natural language input** (viz sekce 17)
+- **i18n a a11y** (viz sekce 18)
+- **AI integrace** (Ollama + volitelné gatewaye) (viz sekce 19)
 - Štítky / filtry
 - Integrace s dalšími službami (email, Slack...)
 - Denní / měsíční pohled
@@ -821,3 +827,54 @@ Zavolat na pojišťovnu !draining 15min
 - Parser by měl být tolerantní k pořadí — atributy mohou být kdekoliv ve větě
 - Při parsování se zobrazí **preview** — uživatel vidí, jak appka rozuměla vstupu, než potvrdí
 - Lokalizace: parser by měl rozumět českým i anglickým klíčovým slovům (`zítra` i `tomorrow`)
+
+---
+
+## 18. Budoucí feature: i18n a přístupnost (a11y)
+
+### i18n — vícejazyčnost
+
+MVP je v češtině. Budoucí podpora minimálně:
+- **čeština** (výchozí)
+- **angličtina**
+
+Implementační přístup: i18n knihovna (např. i18next nebo Lingui) s oddělením řetězců do lokalizačních souborů. Přepínač jazyka v Nastavení → Vzhled (nebo samostatná sekce Formáty). Formát data a času respektuje zvolený jazyk / locale.
+
+### a11y — přístupnost
+
+- **Screen reader podpora:** sémantické HTML, ARIA role a labely na interaktivních prvcích (drag handles, time-blocky, priority popovert)
+- **Keyboard navigation:** plná ovladatelnost klávesnicí — inbox, nastavení, modaly; drag & drop má klávesnicovou alternativu (přesun bloku šipkami)
+- **Reduced motion:** animace (konfety, přechody) se vypnou nebo zjednodušší pokud uživatel má nastaveno `prefers-reduced-motion: reduce` — konfety již implementovány s touto podporou; ostatní animace budou postupně doplněny
+- **Kontrast:** barevná paleta (světlý i tmavý režim) musí splňovat WCAG AA (kontrast text/pozadí minimálně 4.5:1)
+
+---
+
+## 19. Budoucí feature: AI integrace
+
+### Filozofie
+
+AI je volitelný doplněk, nikdy závislost. Appka musí být plně funkční bez jakéhokoliv AI modelu. Priorita: lokální modely před cloudovými — v souladu s local-first principem a ochranou soukromí (úkoly a plány jsou citlivá data).
+
+### Podporované backendy
+
+| Backend | Typ | Poznámka |
+|---|---|---|
+| [Ollama](https://ollama.com) | lokální | Preferovaný — model běží na počítači uživatele, žádná data neopustí zařízení |
+| OpenAI API | cloud (gateway) | Volitelný; uživatel zadá vlastní API klíč |
+| Anthropic API | cloud (gateway) | Volitelný; uživatel zadá vlastní API klíč |
+| Vlastní OpenAI-kompatibilní endpoint | cloud / lokální | Pro pokročilé uživatele (LM Studio, Jan, atd.) |
+
+Konfigurace v Nastavení — nová sekce "AI". Uložení API klíčů lokálně (localStorage nebo Evolu, nikdy odesíláno na FlowBlock servery — ty neexistují).
+
+### Případy užití
+
+- **Smart suggestions** (rozšíření sekce 13) — návrh bloků a priorit na základě obsahu inboxu, denní kapacity a energetické náročnosti
+- **Shrnutí dne** — krátký přehled co bylo splněno, co se přesunulo, co čeká
+- **Natural language parsing** (rozšíření sekce 17) — AI jako fallback pro složitější vstupy, které regex parser nezvládne
+- **Prioritizační asistent** — na vyžádání navrhne prioritu nebo energetický label pro nový úkol
+
+### Poznámky k implementaci
+
+- Všechny AI funkce jsou explicitně spouštěny uživatelem (žádné automatické pozadí)
+- Odpovědi AI jsou vždy návrhy — uživatel je přijme nebo odmítne jedním kliknutím
+- Pokud AI backend není nakonfigurován, funkce se tiše skryjí (žádné "nastavte AI")
