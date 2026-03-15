@@ -8,6 +8,7 @@ import DashboardLayout from "./components/dashboard/DashboardLayout";
 import MobileLayout from "./components/mobile/MobileLayout";
 import { ToastProvider, useToast } from "./components/ui/Toast";
 import { TimeFormatProvider } from "./contexts/TimeFormatContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useCalendarSync } from "./hooks/useCalendarSync";
 import { useDayRollover } from "./hooks/useDayRollover";
@@ -66,7 +67,7 @@ function AppContent() {
   if (isMobile) return <MobileLayout />;
 
   return (
-    <div className="flex flex-col h-screen bg-[#f5f0e8] text-[#1a1a2e] overflow-hidden">
+    <div className="flex flex-col h-screen bg-paper text-ink overflow-hidden">
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
@@ -93,11 +94,12 @@ function AppContent() {
 export default function App() {
   return (
     <EvoluProvider value={evolu}>
+      <ThemeProvider>
       <TimeFormatProvider>
       <ToastProvider>
         <Suspense
           fallback={
-            <div className="flex h-screen items-center justify-center bg-[#f5f0e8] text-[#1a1a2e]/40 text-sm">
+            <div className="flex h-screen items-center justify-center bg-paper text-ink/40 text-sm">
               Načítání…
             </div>
           }
@@ -106,6 +108,7 @@ export default function App() {
         </Suspense>
       </ToastProvider>
       </TimeFormatProvider>
+      </ThemeProvider>
     </EvoluProvider>
   );
 }

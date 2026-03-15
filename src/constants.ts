@@ -1,8 +1,15 @@
 export const PRIORITY_COLORS = {
-  high: { bg: "#fee2e2", border: "#f87171", text: "#991b1b" },
+  high:   { bg: "#fee2e2", border: "#f87171", text: "#991b1b" },
   medium: { bg: "#fef3c7", border: "#f59e0b", text: "#92400e" },
-  low: { bg: "#dbeafe", border: "#60a5fa", text: "#1e3a8a" },
-  none: { bg: "#f1f5f9", border: "#94a3b8", text: "#334155" },
+  low:    { bg: "#dbeafe", border: "#60a5fa", text: "#1e3a8a" },
+  none:   { bg: "#f1f5f9", border: "#94a3b8", text: "#334155" },
+} as const;
+
+export const PRIORITY_COLORS_DARK = {
+  high:   { bg: "#4a2222", border: "#f87171", text: "#fca5a5" },
+  medium: { bg: "#493614", border: "#f59e0b", text: "#fcd34d" },
+  low:    { bg: "#1e2d4a", border: "#60a5fa", text: "#93c5fd" },
+  none:   { bg: "#2a2c45", border: "#475569", text: "#94a3b8" },
 } as const;
 
 export type Priority = keyof typeof PRIORITY_COLORS;

@@ -38,22 +38,22 @@ export default function UpcomingList() {
 
   return (
     <div className="mx-3 mb-3">
-      <div className="text-xs font-semibold uppercase tracking-wider text-[#1a1a2e]/40 mb-1 px-1">
+      <div className="text-xs font-semibold uppercase tracking-wider text-ink/40 mb-1 px-1">
         Nadcházející
       </div>
       {upcoming.length === 0 ? (
-        <p className="text-xs text-[#1a1a2e]/30 px-1 py-2">Dnes nic dalšího</p>
+        <p className="text-xs text-ink/30 px-1 py-2">Dnes nic dalšího</p>
       ) : (
         <div className="flex flex-col gap-1">
           {upcoming.map((b) => (
             <div
               key={b.id}
-              className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-[#1a1a2e]/5"
+              className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-ink/5"
             >
-              <span className="text-xs text-[#1a1a2e]/50 shrink-0 w-10">
+              <span className="text-xs text-ink/50 shrink-0 w-10">
                 {b.start ? formatIso(b.start, timeFormat) : ""}
               </span>
-              <span className="text-xs text-[#1a1a2e] truncate">{b.title ?? "Blok"}</span>
+              <span className="text-xs text-ink truncate">{b.title ?? "Blok"}</span>
             </div>
           ))}
         </div>

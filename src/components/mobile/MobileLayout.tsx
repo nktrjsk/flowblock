@@ -46,13 +46,13 @@ export default function MobileLayout() {
   );
 
   return (
-    <div className="flex flex-col h-dvh bg-[#f5f0e8] text-[#1a1a2e] overflow-hidden">
+    <div className="flex flex-col h-dvh bg-paper text-ink overflow-hidden">
       {/* Top bar */}
-      <header className="h-12 flex items-center px-4 border-b border-[#1a1a2e]/10 shrink-0">
-        <h1 className="font-serif italic text-xl text-[#1a1a2e] flex-1">FlowBlock</h1>
+      <header className="h-12 flex items-center px-4 border-b border-ink/10 shrink-0">
+        <h1 className="font-serif italic text-xl text-ink flex-1">FlowBlock</h1>
         <button
           onClick={() => setSettingsOpen(true)}
-          className="w-7 h-7 flex items-center justify-center rounded-md border border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5 transition-colors text-sm"
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-ink/20 hover:bg-ink/5 transition-colors text-sm"
           title="Nastavení"
         >
           ⚙
@@ -60,7 +60,7 @@ export default function MobileLayout() {
       </header>
 
       {/* Capacity bars — today only */}
-      <div className="px-2 py-2 border-b border-[#1a1a2e]/10 shrink-0">
+      <div className="px-2 py-2 border-b border-ink/10 shrink-0">
         <DayCapacityBars plannedMinutes={plannedMinutes} />
       </div>
 
@@ -72,14 +72,14 @@ export default function MobileLayout() {
       {/* FAB */}
       <button
         onClick={() => setSheetOpen(true)}
-        className="fixed bottom-20 right-4 z-30 w-14 h-14 rounded-full bg-[#1a1a2e] text-[#f5f0e8] text-2xl shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+        className="fixed bottom-20 right-4 z-30 w-14 h-14 rounded-full bg-ink text-paper text-2xl shadow-lg flex items-center justify-center active:scale-95 transition-transform"
         aria-label="Přidat úkol"
       >
         +
       </button>
 
       {/* Bottom tab bar */}
-      <nav className="h-14 flex border-t border-[#1a1a2e]/10 bg-[#f5f0e8] shrink-0">
+      <nav className="h-14 flex border-t border-ink/10 bg-paper shrink-0">
         {(["inbox", "today"] as Tab[]).map((tab) => {
           const label = tab === "inbox" ? "Inbox" : "Dnes";
           const isActive = activeTab === tab;
@@ -89,8 +89,8 @@ export default function MobileLayout() {
               onClick={() => setActiveTab(tab)}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-xs transition-colors ${
                 isActive
-                  ? "text-[#1a1a2e] font-semibold"
-                  : "text-[#1a1a2e]/40"
+                  ? "text-ink font-semibold"
+                  : "text-ink/40"
               }`}
             >
               <span className={`text-base ${isActive ? "opacity-100" : "opacity-40"}`}>

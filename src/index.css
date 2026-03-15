@@ -12,12 +12,19 @@
 
 @layer base {
   :root {
-    --color-cream: #f5f0e8;
-    --color-slate: #1a1a2e;
+    --paper:   245 240 232;  /* #f5f0e8 — cream */
+    --ink:     26  26  46;   /* #1a1a2e — dark slate */
+    --surface: 255 255 255;  /* white */
+  }
+
+  .dark {
+    --paper:   26  26  46;   /* #1a1a2e */
+    --ink:     245 240 232;  /* #f5f0e8 */
+    --surface: 37  37  64;   /* #252540 */
   }
 
   body {
-    @apply bg-[#f5f0e8] text-[#1a1a2e];
+    @apply bg-paper text-ink;
     font-family: "Sora", sans-serif;
   }
 }

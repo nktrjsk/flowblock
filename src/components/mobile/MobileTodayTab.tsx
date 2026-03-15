@@ -52,35 +52,35 @@ function NowCard({ now, todayBlocks }: { now: Date; todayBlocks: Row[] }) {
 
   return (
     <div
-      className="mx-4 my-3 p-4 rounded-xl bg-white shadow-sm"
+      className="mx-4 my-3 p-4 rounded-xl bg-surface shadow-sm"
       style={{ borderLeft: `3px solid ${borderColor}` }}
     >
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-[#1a1a2e]/40 mb-1">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-ink/40 mb-1">
         Právě teď
       </div>
       {current ? (
         <>
-          <div className="text-base font-semibold text-[#1a1a2e] truncate">
+          <div className="text-base font-semibold text-ink truncate">
             {current.title ?? "Blok"}
           </div>
-          <div className="mt-2.5 h-2 rounded-full bg-[#1a1a2e]/10 overflow-hidden">
+          <div className="mt-2.5 h-2 rounded-full bg-ink/10 overflow-hidden">
             <div
               className="h-full rounded-full bg-green-500 transition-all"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="text-xs text-[#1a1a2e]/40 mt-1">Zbývá {remainingMin} min</div>
+          <div className="text-xs text-ink/40 mt-1">Zbývá {remainingMin} min</div>
         </>
       ) : next ? (
-        <div className="text-sm text-[#1a1a2e]/70">
+        <div className="text-sm text-ink/70">
           Další:{" "}
-          <span className="font-semibold text-[#1a1a2e]">{next.title ?? "Blok"}</span>
+          <span className="font-semibold text-ink">{next.title ?? "Blok"}</span>
           {next.start && (
-            <span className="text-[#1a1a2e]/50"> v {formatTime(next.start)}</span>
+            <span className="text-ink/50"> v {formatTime(next.start)}</span>
           )}
         </div>
       ) : (
-        <div className="text-sm text-[#1a1a2e]/50">Volný čas</div>
+        <div className="text-sm text-ink/50">Volný čas</div>
       )}
     </div>
   );
@@ -101,7 +101,7 @@ export default function MobileTodayTab() {
       <NowCard now={now} todayBlocks={todayBlocks} />
 
       {todayBlocks.length === 0 && (
-        <p className="text-sm text-[#1a1a2e]/30 text-center py-6">
+        <p className="text-sm text-ink/30 text-center py-6">
           Dnes žádné bloky
         </p>
       )}
@@ -115,7 +115,7 @@ export default function MobileTodayTab() {
             now < new Date(block.end);
 
           return (
-            <div key={block.id} className="flex items-start gap-3 py-3 border-b border-[#1a1a2e]/5">
+            <div key={block.id} className="flex items-start gap-3 py-3 border-b border-ink/5">
               {/* Dot indicator */}
               <div className="pt-0.5 shrink-0">
                 {isCurrent ? (
@@ -126,11 +126,11 @@ export default function MobileTodayTab() {
               </div>
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <div className="text-xs text-[#1a1a2e]/50 mb-0.5">
+                <div className="text-xs text-ink/50 mb-0.5">
                   {block.start ? formatTime(block.start) : ""}
                   {block.end ? ` – ${formatTime(block.end)}` : ""}
                 </div>
-                <div className="text-sm font-medium text-[#1a1a2e] truncate">
+                <div className="text-sm font-medium text-ink truncate">
                   {block.title ?? "Blok"}
                 </div>
               </div>

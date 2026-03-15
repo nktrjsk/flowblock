@@ -164,8 +164,8 @@ export default function TimeSegmentInput({
   const segCls = (seg: Segment) =>
     `px-0.5 py-px rounded outline-none select-none leading-none transition-colors ${
       activeSegment === seg
-        ? "bg-[#1a1a2e] text-[#f5f0e8]"
-        : "text-[#1a1a2e] hover:bg-[#1a1a2e]/8"
+        ? "bg-ink text-paper"
+        : "text-ink hover:bg-ink/8"
     }`;
 
   return (
@@ -175,8 +175,8 @@ export default function TimeSegmentInput({
         hasError
           ? "border-red-400 bg-red-50/50"
           : activeSegment !== null
-          ? "border-[#1a1a2e]/40"
-          : "border-[#1a1a2e]/15"
+          ? "border-ink/40"
+          : "border-ink/15"
       }`}
       onBlur={(e) => {
         if (!containerRef.current?.contains(e.relatedTarget as Node)) {
@@ -195,7 +195,7 @@ export default function TimeSegmentInput({
       >
         {activeSegment === "h" && pendingDigit ? pendingDigit : String(displayH).padStart(2, "0")}
       </span>
-      <span className="text-[#1a1a2e]/30 select-none">:</span>
+      <span className="text-ink/30 select-none">:</span>
       <span
         ref={mRef}
         tabIndex={0}
@@ -208,7 +208,7 @@ export default function TimeSegmentInput({
       </span>
       {format === "12h" && (
         <>
-          <span className="text-[#1a1a2e]/20 select-none">&thinsp;</span>
+          <span className="text-ink/20 select-none">&thinsp;</span>
           <span
             ref={pRef}
             tabIndex={0}

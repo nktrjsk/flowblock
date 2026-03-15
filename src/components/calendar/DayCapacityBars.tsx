@@ -37,9 +37,9 @@ export default function DayCapacityBars({ plannedMinutes }: DayCapacityBarsProps
         {isOver ? (
           <AlertTriangle size={12} className="text-red-500 shrink-0" />
         ) : (
-          <Clock size={12} className="text-[#1a1a2e]/35 shrink-0" />
+          <Clock size={12} className="text-ink/35 shrink-0" />
         )}
-        <div className="flex-1 h-2.5 rounded-full bg-[#1a1a2e]/10 overflow-hidden">
+        <div className="flex-1 h-2.5 rounded-full bg-ink/10 overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-300 ${isOver ? "animate-pulse" : ""}`}
             style={{
@@ -51,8 +51,8 @@ export default function DayCapacityBars({ plannedMinutes }: DayCapacityBarsProps
       </div>
       {/* Energy bar (placeholder) */}
       <div className="flex items-center gap-1.5" title={energyTooltip}>
-        <Zap size={12} className="text-[#1a1a2e]/35 shrink-0" />
-        <div className="flex-1 h-2 rounded-full bg-[#1a1a2e]/10 overflow-hidden">
+        <Zap size={12} className="text-ink/35 shrink-0" />
+        <div className="flex-1 h-2 rounded-full bg-ink/10 overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{

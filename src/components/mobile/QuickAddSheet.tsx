@@ -42,9 +42,9 @@ export default function QuickAddSheet({ onClose }: QuickAddSheetProps) {
         onClick={onClose}
       />
       {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#f5f0e8] rounded-t-2xl shadow-xl px-4 pt-4 pb-8 safe-area-bottom">
-        <div className="w-10 h-1 rounded-full bg-[#1a1a2e]/20 mx-auto mb-4" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-[#1a1a2e]/40 mb-2">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-paper rounded-t-2xl shadow-xl px-4 pt-4 pb-8 safe-area-bottom">
+        <div className="w-10 h-1 rounded-full bg-ink/20 mx-auto mb-4" />
+        <p className="text-xs font-semibold uppercase tracking-wider text-ink/40 mb-2">
           Nový úkol
         </p>
         <input
@@ -53,19 +53,19 @@ export default function QuickAddSheet({ onClose }: QuickAddSheetProps) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Název úkolu…"
-          className="w-full px-3 py-2.5 text-sm rounded-xl border border-[#1a1a2e]/20 bg-white outline-none focus:border-[#1a1a2e]/50"
+          className="w-full px-3 py-2.5 text-sm rounded-xl border border-ink/20 bg-surface outline-none focus:border-ink/50"
         />
         <div className="flex gap-2 mt-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 text-sm rounded-xl border border-[#1a1a2e]/20 text-[#1a1a2e]/60"
+            className="flex-1 py-2.5 text-sm rounded-xl border border-ink/20 text-ink/60"
           >
             Zrušit
           </button>
           <button
             onClick={save}
             disabled={!value.trim()}
-            className="flex-1 py-2.5 text-sm rounded-xl bg-[#1a1a2e] text-[#f5f0e8] font-medium disabled:opacity-40"
+            className="flex-1 py-2.5 text-sm rounded-xl bg-ink text-paper font-medium disabled:opacity-40"
           >
             Přidat
           </button>

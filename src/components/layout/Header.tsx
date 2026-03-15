@@ -38,18 +38,18 @@ export default function Header({
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <header className="h-14 flex items-center px-4 gap-3 border-b border-[#1a1a2e]/10 bg-[#f5f0e8] shrink-0">
-      <h1 className="font-serif italic text-xl text-[#1a1a2e] mr-2">
+    <header className="h-14 flex items-center px-4 gap-3 border-b border-ink/10 bg-paper shrink-0">
+      <h1 className="font-serif italic text-xl text-ink mr-2">
         FlowBlock
       </h1>
-      <div className="w-px h-5 bg-[#1a1a2e]/20" />
+      <div className="w-px h-5 bg-ink/20" />
       {/* View toggle */}
       <button
         onClick={() => onViewChange("dashboard")}
         className={`px-3 py-1 text-sm rounded-md border transition-colors ${
           viewMode === "dashboard"
-            ? "border-[#1a1a2e]/40 bg-[#1a1a2e]/10 font-semibold"
-            : "border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5"
+            ? "border-ink/40 bg-ink/10 font-semibold"
+            : "border-ink/20 hover:bg-ink/5"
         }`}
       >
         Dnes
@@ -58,8 +58,8 @@ export default function Header({
         onClick={() => onViewChange("week")}
         className={`px-3 py-1 text-sm rounded-md border transition-colors ${
           viewMode === "week"
-            ? "border-[#1a1a2e]/40 bg-[#1a1a2e]/10 font-semibold"
-            : "border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5"
+            ? "border-ink/40 bg-ink/10 font-semibold"
+            : "border-ink/20 hover:bg-ink/5"
         }`}
       >
         Týden
@@ -67,10 +67,10 @@ export default function Header({
       {/* Week navigation — only in week view */}
       {viewMode === "week" && (
         <>
-          <div className="w-px h-5 bg-[#1a1a2e]/20" />
+          <div className="w-px h-5 bg-ink/20" />
           <button
             onClick={onPrevWeek}
-            className="w-7 h-7 flex items-center justify-center rounded-md border border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5 transition-colors text-sm"
+            className="w-7 h-7 flex items-center justify-center rounded-md border border-ink/20 hover:bg-ink/5 transition-colors text-sm"
           >
             ◄
           </button>
@@ -79,7 +79,7 @@ export default function Header({
           </span>
           <button
             onClick={onNextWeek}
-            className="w-7 h-7 flex items-center justify-center rounded-md border border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5 transition-colors text-sm"
+            className="w-7 h-7 flex items-center justify-center rounded-md border border-ink/20 hover:bg-ink/5 transition-colors text-sm"
           >
             ►
           </button>
@@ -92,7 +92,7 @@ export default function Header({
           <button
             onClick={onSyncNow}
             disabled={syncing}
-            className="w-7 h-7 flex items-center justify-center rounded-md border border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5 transition-colors disabled:opacity-50"
+            className="w-7 h-7 flex items-center justify-center rounded-md border border-ink/20 hover:bg-ink/5 transition-colors disabled:opacity-50"
             title={syncing ? "Synchronizuji…" : "Synchronizovat kalendáře"}
           >
             <RefreshCw
@@ -102,14 +102,14 @@ export default function Header({
           </button>
           {/* Orange dot for background sync errors */}
           {hasSyncErrors && !syncing && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-400 border border-[#f5f0e8]" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-400 border border-paper" />
           )}
         </div>
 
         {/* Settings button */}
         <button
           onClick={() => setSettingsOpen(true)}
-          className="w-7 h-7 flex items-center justify-center rounded-md border border-[#1a1a2e]/20 hover:bg-[#1a1a2e]/5 transition-colors text-sm"
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-ink/20 hover:bg-ink/5 transition-colors text-sm"
           title="Nastavení"
         >
           ⚙

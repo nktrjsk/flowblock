@@ -37,9 +37,9 @@ export default function DragGhost({
         pointerEvents: "none",
         zIndex: 20,
       }}
-      className="border-2 border-dashed border-[#1a1a2e]/40 rounded-md bg-[#1a1a2e]/8 flex items-start justify-end"
+      className="border-2 border-dashed border-ink/40 rounded-md bg-ink/8 flex items-start justify-end"
     >
-      <span className="text-[10px] text-[#1a1a2e]/60 bg-white/80 rounded px-1 py-0.5 m-1 leading-none">
+      <span className="text-[10px] text-ink/60 bg-surface/80 rounded px-1 py-0.5 m-1 leading-none">
         {formatTime(startMinutes)}–{formatTime(endMinutes)}
       </span>
     </div>

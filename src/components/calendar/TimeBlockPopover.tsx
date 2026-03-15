@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { X, Trash2 } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
-import { PRIORITY_COLORS, Priority } from "../../constants";
+import { Priority } from "../../constants";
 import * as Evolu from "@evolu/common";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import TimeSegmentInput from "./TimeSegmentInput";
+import { usePriorityColors } from "../../hooks/usePriorityColors";
 
 const POPOVER_WIDTH = 272;
 
@@ -43,6 +44,7 @@ export default function TimeBlockPopover({
 }: TimeBlockPopoverProps) {
   const { update } = useEvolu();
   const { timeFormat } = useTimeFormat();
+  const priorityColors = usePriorityColors();
   const [titleValue, setTitleValue] = useState(title);
 
   // Normalize end to day offset + minutes-within-day
@@ -115,13 +117,13 @@ export default function TimeBlockPopover({
       {/* Popover */}
       <div
         style={{ position: "fixed", left, top, width: POPOVER_WIDTH, zIndex: 100 }}
-        className="bg-white rounded-xl shadow-xl border border-[#1a1a2e]/10 p-4 flex flex-col gap-3"
+        className="bg-surface rounded-xl shadow-xl border border-ink/10 p-4 flex flex-col gap-3"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 p-1 rounded hover:bg-[#1a1a2e]/5 text-[#1a1a2e]/40 hover:text-[#1a1a2e]/70 transition-colors"
+          className="absolute top-3 right-3 p-1 rounded hover:bg-ink/5 text-ink/40 hover:text-ink/70 transition-colors"
         >
           <X size={14} />
         </button>
@@ -135,14 +137,14 @@ export default function TimeBlockPopover({
             if (e.key === "Enter") handleSave();
             if (e.key === "Escape") onClose();
           }}
-          className="text-sm font-medium bg-transparent outline-none border-b border-[#1a1a2e]/20 pb-1 pr-6 focus:border-[#1a1a2e]/50"
+          className="text-sm font-medium bg-transparent outline-none border-b border-ink/20 pb-1 pr-6 focus:border-ink/50"
           placeholder="Název bloku"
         />
 
         {/* Time row */}
         <div className="flex gap-2">
           <div className="flex-1 flex flex-col gap-1">
-            <span className="text-[10px] text-[#1a1a2e]/40">Začátek</span>
+            <span className="text-[10px] text-ink/40">Začátek</span>
             <TimeSegmentInput
               totalMinutes={startMin}
               format={timeFormat}
@@ -151,19 +153,19 @@ export default function TimeBlockPopover({
           </div>
           <div className="flex-1 flex flex-col gap-1">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-[#1a1a2e]/40">Konec</span>
+              <span className="text-[10px] text-ink/40">Konec</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setEndDayOffset(Math.max(0, endDayOffset - 1))}
                   disabled={endDayOffset === 0}
-                  className="text-[10px] text-[#1a1a2e]/35 hover:text-[#1a1a2e]/70 disabled:opacity-20 transition-colors leading-none"
+                  className="text-[10px] text-ink/35 hover:text-ink/70 disabled:opacity-20 transition-colors leading-none"
                   title="O den dříve"
                 >
                   −1d
                 </button>
                 <button
                   onClick={() => setEndDayOffset(endDayOffset + 1)}
-                  className="text-[10px] text-[#1a1a2e]/35 hover:text-[#1a1a2e]/70 transition-colors leading-none"
+                  className="text-[10px] text-ink/35 hover:text-ink/70 transition-colors leading-none"
                   title="O den později"
                 >
                   +1d
@@ -178,7 +180,7 @@ export default function TimeBlockPopover({
                 hasError={!isValid}
               />
               {endDayOffset > 0 && (
-                <span className="text-[9px] text-[#1a1a2e]/50 bg-[#1a1a2e]/8 rounded px-1 py-0.5 shrink-0 leading-none">
+                <span className="text-[9px] text-ink/50 bg-ink/8 rounded px-1 py-0.5 shrink-0 leading-none">
                   +{endDayOffset}d
                 </span>
               )}
@@ -202,14 +204,14 @@ export default function TimeBlockPopover({
                 prioValue === p ? "opacity-100" : "opacity-40 hover:opacity-70"
               }`}
               style={{
-                backgroundColor: PRIORITY_COLORS[p].bg,
-                color: PRIORITY_COLORS[p].text,
-                outline: prioValue === p ? `2px solid ${PRIORITY_COLORS[p].border}` : undefined,
+                backgroundColor: priorityColors[p].bg,
+                color: priorityColors[p].text,
+                outline: prioValue === p ? `2px solid ${priorityColors[p].border}` : undefined,
               }}
             >
               <span
                 className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: PRIORITY_COLORS[p].border }}
+                style={{ backgroundColor: priorityColors[p].border }}
               />
               {p === "none" ? "—" : p === "low" ? "nízká" : p === "medium" ? "střední" : "vysoká"}
             </button>
@@ -218,10 +220,10 @@ export default function TimeBlockPopover({
 
         {/* Connected task */}
         {taskId && (
-          <div className="flex items-center gap-2 text-xs text-[#1a1a2e]/60 bg-[#1a1a2e]/5 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 text-xs text-ink/60 bg-ink/5 rounded-lg px-3 py-2">
             <span className="flex-1 truncate">
-              <span className="text-[#1a1a2e]/40">Úkol: </span>
-              <span className="text-[#1a1a2e]/80">{taskTitle ?? "—"}</span>
+              <span className="text-ink/40">Úkol: </span>
+              <span className="text-ink/80">{taskTitle ?? "—"}</span>
             </span>
             <button
               onClick={handleDisconnect}
@@ -234,7 +236,7 @@ export default function TimeBlockPopover({
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-1 border-t border-[#1a1a2e]/8">
+        <div className="flex items-center justify-between pt-1 border-t border-ink/8">
           <button
             onClick={handleDelete}
             className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors"
@@ -247,8 +249,8 @@ export default function TimeBlockPopover({
             disabled={!isValid}
             className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
               isValid
-                ? "bg-[#1a1a2e] text-[#f5f0e8] hover:bg-[#1a1a2e]/85"
-                : "bg-[#1a1a2e]/15 text-[#1a1a2e]/30 cursor-not-allowed"
+                ? "bg-ink text-paper hover:bg-ink/85"
+                : "bg-ink/15 text-ink/30 cursor-not-allowed"
             }`}
           >
             Hotovo

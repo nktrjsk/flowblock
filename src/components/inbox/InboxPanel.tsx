@@ -83,20 +83,20 @@ export default function InboxPanel() {
 
   return (
     <aside
-      className={`w-72 flex flex-col border-r border-[#1a1a2e]/10 transition-colors ${dropHover ? "bg-green-50 border-green-300" : ""}`}
+      className={`w-72 flex flex-col border-r border-ink/10 transition-colors ${dropHover ? "bg-green-50 border-green-300" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div className="p-3 border-b border-[#1a1a2e]/10">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-[#1a1a2e]/50">
+      <div className="p-3 border-b border-ink/10">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/50">
           Inbox
         </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto py-2 px-2">
         {inboxRows.length === 0 && (
-          <p className="text-xs text-[#1a1a2e]/30 text-center py-6">
+          <p className="text-xs text-ink/30 text-center py-6">
             Žádné úkoly
           </p>
         )}
@@ -116,11 +116,11 @@ export default function InboxPanel() {
         {plannedRows.length > 0 && (
           <div className="mt-2">
             <div className="flex items-center gap-2 px-3 py-1">
-              <div className="flex-1 border-t border-dashed border-[#1a1a2e]/20" />
-              <span className="text-[10px] text-[#1a1a2e]/30 uppercase tracking-wider shrink-0">
+              <div className="flex-1 border-t border-dashed border-ink/20" />
+              <span className="text-[10px] text-ink/30 uppercase tracking-wider shrink-0">
                 Plánováno
               </span>
-              <div className="flex-1 border-t border-dashed border-[#1a1a2e]/20" />
+              <div className="flex-1 border-t border-dashed border-ink/20" />
             </div>
             <div className="opacity-50 pointer-events-none">
               {plannedRows.map((row) => (
@@ -143,7 +143,7 @@ export default function InboxPanel() {
           <div className="mt-4">
             <button
               onClick={() => setDoneOpen((v) => !v)}
-              className="w-full text-left px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#1a1a2e]/40 hover:text-[#1a1a2e]/60 flex items-center gap-1"
+              className="w-full text-left px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ink/40 hover:text-ink/60 flex items-center gap-1"
             >
               <span>{doneOpen ? "▼" : "►"}</span>
               <span>Hotovo ({doneRows.length})</span>
@@ -164,7 +164,7 @@ export default function InboxPanel() {
         )}
       </div>
 
-      <div className="p-2 border-t border-[#1a1a2e]/10">
+      <div className="p-2 border-t border-ink/10">
         <AddTaskInput />
       </div>
     </aside>

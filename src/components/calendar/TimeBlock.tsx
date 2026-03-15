@@ -4,7 +4,6 @@ import { GripVertical } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
 import {
-  PRIORITY_COLORS,
   Priority,
   DRAG_DATA_KEY,
   DragPayload,
@@ -14,6 +13,7 @@ import {
 import * as Evolu from "@evolu/common";
 import TimeBlockPopover from "./TimeBlockPopover";
 import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
+import { usePriorityColors } from "../../hooks/usePriorityColors";
 
 interface TimeBlockProps {
   id: TimeBlockId;
@@ -70,8 +70,9 @@ export default function TimeBlock({
   const isDragging = useRef(false);
   const justDragged = useRef(false);
 
+  const priorityColors = usePriorityColors();
   const prio = (priority ?? "none") as Priority;
-  const colors = PRIORITY_COLORS[prio] ?? PRIORITY_COLORS.none;
+  const colors = priorityColors[prio] ?? priorityColors.none;
 
   const displayStart = liveResize?.startMinutes ?? startMinutes;
   const displayEnd = liveResize?.endMinutes ?? (startMinutes + durationMinutes);
@@ -197,10 +198,10 @@ export default function TimeBlock({
         {/* Top resize handle */}
         <div
           onMouseDown={(e) => handleResizeMouseDown(e, "top")}
-          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white border border-[#1a1a2e]/20 opacity-0 group-hover:opacity-100 cursor-n-resize z-20 flex items-center justify-center"
+          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-surface border border-ink/20 opacity-0 group-hover:opacity-100 cursor-n-resize z-20 flex items-center justify-center"
           style={{ pointerEvents: "auto" }}
         >
-          <GripVertical size={12} className="text-[#1a1a2e]/40" />
+          <GripVertical size={12} className="text-ink/40" />
         </div>
 
         {/* Content */}
@@ -216,10 +217,10 @@ export default function TimeBlock({
         {/* Bottom resize handle */}
         <div
           onMouseDown={(e) => handleResizeMouseDown(e, "bottom")}
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-5 h-5 rounded-full bg-white border border-[#1a1a2e]/20 opacity-0 group-hover:opacity-100 cursor-s-resize z-20 flex items-center justify-center"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-5 h-5 rounded-full bg-surface border border-ink/20 opacity-0 group-hover:opacity-100 cursor-s-resize z-20 flex items-center justify-center"
           style={{ pointerEvents: "auto" }}
         >
-          <GripVertical size={12} className="text-[#1a1a2e]/40" />
+          <GripVertical size={12} className="text-ink/40" />
         </div>
       </div>
 

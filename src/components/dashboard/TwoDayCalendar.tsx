@@ -331,7 +331,7 @@ export default function TwoDayCalendar() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Day header row */}
-      <div className="flex shrink-0 border-b border-[#1a1a2e]/10">
+      <div className="flex shrink-0 border-b border-ink/10">
         <div style={{ width: TIME_COLUMN_WIDTH }} className="shrink-0" />
         {dayLabels.map((label, i) => {
           const dayDate = days[i];
@@ -339,12 +339,12 @@ export default function TwoDayCalendar() {
           return (
             <div
               key={i}
-              className="flex-1 flex flex-col items-center pt-1.5 text-xs font-medium text-[#1a1a2e]/60"
+              className="flex-1 flex flex-col items-center pt-1.5 text-xs font-medium text-ink/60"
             >
               <div className="mb-1">
-                <span className={isToday ? "font-semibold text-[#1a1a2e]" : ""}>{label}</span>
+                <span className={isToday ? "font-semibold text-ink" : ""}>{label}</span>
                 <span
-                  className={`ml-1 ${isToday ? "bg-[#1a1a2e] text-[#f5f0e8] rounded-full px-1.5 py-0.5" : ""}`}
+                  className={`ml-1 ${isToday ? "bg-ink text-paper rounded-full px-1.5 py-0.5" : ""}`}
                 >
                   {dayDate.getDate()}.
                 </span>
@@ -367,7 +367,7 @@ export default function TwoDayCalendar() {
           {/* Time labels column */}
           <div
             style={{ width: TIME_COLUMN_WIDTH }}
-            className="shrink-0 relative border-r border-[#1a1a2e]/10"
+            className="shrink-0 relative border-r border-ink/10"
           >
             {HOURS.map((h) => (
               <div
@@ -375,7 +375,7 @@ export default function TwoDayCalendar() {
                 style={{ top: h * HOUR_HEIGHT_PX }}
                 className="absolute w-full text-right pr-2"
               >
-                <span className="text-[10px] text-[#1a1a2e]/30 leading-none -translate-y-1/2 inline-block">
+                <span className="text-[10px] text-ink/30 leading-none -translate-y-1/2 inline-block">
                   {String(h).padStart(2, "0")}:00
                 </span>
               </div>
@@ -393,7 +393,7 @@ export default function TwoDayCalendar() {
               <div
                 key={dayIndex}
                 data-day={dayIndex}
-                className="flex-1 relative border-r border-[#1a1a2e]/10 last:border-r-0"
+                className="flex-1 relative border-r border-ink/10 last:border-r-0"
                 onDragOver={(e) => handleDragOver(e, dayIndex)}
                 onDrop={(e) => handleDrop(e, dayIndex)}
               >
@@ -480,9 +480,9 @@ export default function TwoDayCalendar() {
                           pointerEvents: "none",
                           zIndex: 20,
                         }}
-                        className="border-2 border-dashed border-[#1a1a2e]/40 rounded-md bg-[#1a1a2e]/5 flex items-start justify-end"
+                        className="border-2 border-dashed border-ink/40 rounded-md bg-ink/5 flex items-start justify-end"
                       >
-                        <span className="text-[10px] text-[#1a1a2e]/50 bg-white/80 rounded px-1 py-0.5 m-0.5 leading-none whitespace-nowrap">
+                        <span className="text-[10px] text-ink/50 bg-surface/80 rounded px-1 py-0.5 m-0.5 leading-none whitespace-nowrap">
                           {label}
                         </span>
                       </div>

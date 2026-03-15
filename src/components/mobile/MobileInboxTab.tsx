@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@evolu/react";
 import { evolu, useEvolu } from "../../db/evolu";
 import { TaskId } from "../../db/schema";
-import { PRIORITY_COLORS, Priority } from "../../constants";
+import { Priority } from "../../constants";
+import { usePriorityColors } from "../../hooks/usePriorityColors";
 import { useToast } from "../ui/Toast";
 import * as Evolu from "@evolu/common";
 
@@ -36,8 +37,9 @@ interface TaskRowProps {
 function TaskRow({ id, title, priority, status, energy, waitingFor }: TaskRowProps) {
   const { update } = useEvolu();
   const toast = useToast();
+  const priorityColors = usePriorityColors();
   const prio = (priority ?? "none") as Priority;
-  const colors = PRIORITY_COLORS[prio] ?? PRIORITY_COLORS.none;
+  const colors = priorityColors[prio] ?? priorityColors.none;
 
   function handleCheck() {
     const newStatus = status === "done" ? "inbox" : "done";
@@ -47,7 +49,7 @@ function TaskRow({ id, title, priority, status, energy, waitingFor }: TaskRowPro
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 border-b border-[#1a1a2e]/5 ${waitingFor != null ? "opacity-60" : ""}`}
+      className={`flex items-center gap-3 px-4 py-3 border-b border-ink/5 ${waitingFor != null ? "opacity-60" : ""}`}
     >
       {/* Priority dot */}
       <span
@@ -57,7 +59,7 @@ function TaskRow({ id, title, priority, status, energy, waitingFor }: TaskRowPro
       {/* Checkbox */}
       <button
         onClick={handleCheck}
-        className="w-5 h-5 shrink-0 rounded border border-[#1a1a2e]/30 flex items-center justify-center"
+        className="w-5 h-5 shrink-0 rounded border border-ink/30 flex items-center justify-center"
       >
         {status === "done" && (
           <svg viewBox="0 0 10 10" className="w-3 h-3" fill="none">
@@ -73,7 +75,7 @@ function TaskRow({ id, title, priority, status, energy, waitingFor }: TaskRowPro
       </button>
       {/* Title */}
       <span
-        className={`flex-1 text-sm ${status === "done" ? "line-through text-[#1a1a2e]/40" : "text-[#1a1a2e]"}`}
+        className={`flex-1 text-sm ${status === "done" ? "line-through text-ink/40" : "text-ink"}`}
       >
         {title}
       </span>
@@ -96,7 +98,7 @@ export default function MobileInboxTab() {
   return (
     <div className="pb-24">
       {inboxRows.length === 0 && (
-        <p className="text-sm text-[#1a1a2e]/30 text-center py-10">
+        <p className="text-sm text-ink/30 text-center py-10">
           Inbox je prázdný
         </p>
       )}
@@ -116,7 +118,7 @@ export default function MobileInboxTab() {
         <div className="mt-2">
           <button
             onClick={() => setDoneOpen((v) => !v)}
-            className="w-full text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#1a1a2e]/40 flex items-center gap-1 border-b border-[#1a1a2e]/5"
+            className="w-full text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-ink/40 flex items-center gap-1 border-b border-ink/5"
           >
             <span>{doneOpen ? "▼" : "►"}</span>
             <span>Hotovo ({doneRows.length})</span>

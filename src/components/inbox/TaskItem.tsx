@@ -3,7 +3,8 @@ import confetti from "canvas-confetti";
 import { Flag } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TaskId } from "../../db/schema";
-import { PRIORITY_COLORS, Priority, DRAG_DATA_KEY, DragPayload } from "../../constants";
+import { Priority, DRAG_DATA_KEY, DragPayload } from "../../constants";
+import { usePriorityColors } from "../../hooks/usePriorityColors";
 import { useToast } from "../ui/Toast";
 import * as Evolu from "@evolu/common";
 
@@ -25,8 +26,9 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
   const { update } = useEvolu();
   const toast = useToast();
 
+  const priorityColors = usePriorityColors();
   const prio = (priority ?? "none") as Priority;
-  const colors = PRIORITY_COLORS[prio] ?? PRIORITY_COLORS.none;
+  const colors = priorityColors[prio] ?? priorityColors.none;
 
   function fireConfetti() {
     const btn = checkboxRef.current;
@@ -86,7 +88,7 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
     <div
       draggable
       onDragStart={handleDragStart}
-      className={`relative flex items-center gap-2 pl-4 pr-3 py-2.5 rounded-lg hover:bg-[#1a1a2e]/5 group cursor-grab active:cursor-grabbing ${waitingFor != null ? "opacity-60" : ""}`}
+      className={`relative flex items-center gap-2 pl-4 pr-3 py-2.5 rounded-lg hover:bg-ink/5 group cursor-grab active:cursor-grabbing ${waitingFor != null ? "opacity-60" : ""}`}
     >
       {/* Priority bar — vertical strip on left edge */}
       <div
@@ -101,7 +103,7 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
           transform: checkAnim ? "scale(1.35)" : "scale(1)",
           transition: "transform 0.2s ease",
         }}
-        className="w-5 h-5 shrink-0 rounded border border-[#1a1a2e]/30 flex items-center justify-center hover:border-[#1a1a2e]/60 transition-colors"
+        className="w-5 h-5 shrink-0 rounded border border-ink/30 flex items-center justify-center hover:border-ink/60 transition-colors"
       >
         {status === "done" && (
           <svg viewBox="0 0 10 10" className="w-3 h-3" fill="none">
@@ -126,12 +128,12 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
             setEditValue(title);
             setEditing(false);
           }}
-          className="flex-1 text-sm bg-transparent outline-none border-b border-[#1a1a2e]/30"
+          className="flex-1 text-sm bg-transparent outline-none border-b border-ink/30"
         />
       ) : (
         <span
           onClick={() => setEditing(true)}
-          className={`flex-1 text-sm cursor-text ${status === "done" ? "line-through text-[#1a1a2e]/40" : ""}`}
+          className={`flex-1 text-sm cursor-text ${status === "done" ? "line-through text-ink/40" : ""}`}
         >
           {title}
         </span>
@@ -146,7 +148,7 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
       <div className="relative shrink-0">
         <button
           onClick={(e) => { e.stopPropagation(); setShowPriorityPicker((v) => !v); }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-[#1a1a2e]/10"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-ink/10"
           title="Priorita"
         >
           <Flag size={12} style={{ color: colors.border }} />
@@ -157,7 +159,7 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
               className="fixed inset-0 z-40"
               onClick={() => setShowPriorityPicker(false)}
             />
-            <div className="absolute right-0 bottom-full mb-1 z-50 bg-white rounded-lg shadow-lg border border-[#1a1a2e]/10 py-1 min-w-[130px]">
+            <div className="absolute right-0 bottom-full mb-1 z-50 bg-surface rounded-lg shadow-lg border border-ink/10 py-1 min-w-[130px]">
               {(["none", "low", "medium", "high"] as Priority[]).map((p) => (
                 <button
                   key={p}
@@ -165,16 +167,16 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
                     update("task", { id, priority: Evolu.NonEmptyString100.orThrow(p) });
                     setShowPriorityPicker(false);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[#1a1a2e]/5 text-left"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-ink/5 text-left"
                 >
                   <span
                     className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: PRIORITY_COLORS[p].border }}
+                    style={{ backgroundColor: priorityColors[p].border }}
                   />
                   <span>
                     {p === "none" ? "žádná" : p === "low" ? "nízká" : p === "medium" ? "střední" : "vysoká"}
                   </span>
-                  {prio === p && <span className="ml-auto text-[#1a1a2e]/30">✓</span>}
+                  {prio === p && <span className="ml-auto text-ink/30">✓</span>}
                 </button>
               ))}
             </div>

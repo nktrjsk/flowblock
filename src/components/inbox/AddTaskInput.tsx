@@ -36,7 +36,7 @@ export default function AddTaskInput() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full py-2 px-3 text-sm text-[#1a1a2e]/50 hover:text-[#1a1a2e] hover:bg-[#1a1a2e]/5 rounded-lg text-left transition-colors"
+        className="w-full py-2 px-3 text-sm text-ink/50 hover:text-ink hover:bg-ink/5 rounded-lg text-left transition-colors"
       >
         + Přidat úkol
       </button>
@@ -54,7 +54,7 @@ export default function AddTaskInput() {
         setOpen(false);
       }}
       placeholder="Název úkolu..."
-      className="w-full py-2 px-3 text-sm border border-[#1a1a2e]/20 rounded-lg bg-white outline-none focus:border-[#1a1a2e]/50"
+      className="w-full py-2 px-3 text-sm border border-ink/20 rounded-lg bg-surface outline-none focus:border-ink/50"
     />
   );
 }
