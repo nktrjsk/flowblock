@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { GripVertical } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
@@ -69,6 +69,11 @@ export default function TimeBlock({
   } | null>(null);
   const isDragging = useRef(false);
   const justDragged = useRef(false);
+  const justResized = useRef(false);
+
+  useEffect(() => {
+    setLiveResize(null);
+  }, [startMinutes, durationMinutes]);
 
   const priorityColors = usePriorityColors();
   const prio = (priority ?? "none") as Priority;
@@ -110,6 +115,7 @@ export default function TimeBlock({
 
   function handleClick(e: React.MouseEvent) {
     if (justDragged.current) return;
+    if (justResized.current) return;
     if (resizingRef.current) return;
     e.stopPropagation();
     setAnchorPos({ x: e.clientX, y: e.clientY });
@@ -164,8 +170,9 @@ export default function TimeBlock({
         }
       }
       resizingRef.current = null;
-      setLiveResize(null);
       onResizeChange?.(id, null, null);
+      justResized.current = true;
+      setTimeout(() => { justResized.current = false; }, 200);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     }
