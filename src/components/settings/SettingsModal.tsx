@@ -3,7 +3,7 @@ import { RefreshCw, Pencil, X } from "lucide-react";
 import { Mnemonic } from "@evolu/common";
 import * as Evolu from "@evolu/common";
 import { useQuery } from "@evolu/react";
-import { evolu, useEvolu } from "../../db/evolu";
+import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/evolu";
 import { CalendarId } from "../../db/schema";
 import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
@@ -96,6 +96,57 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
   const mergedErrors: Record<string, string> = { ...syncErrors, ...calErrors };
 
   // Advanced
+  const [relayUrlValue, setRelayUrlValue] = useState(
+    () => localStorage.getItem(EVOLU_RELAY_KEY) || DEFAULT_RELAY_URL,
+  );
+  const [relaySaved, setRelaySaved] = useState(false);
+  const [relayUrlError, setRelayUrlError] = useState<string | null>(null);
+  const [relayStatus, setRelayStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+
+  useEffect(() => {
+    const trimmed = relayUrlValue.trim();
+    if (!trimmed || (!trimmed.startsWith("ws://") && !trimmed.startsWith("wss://"))) {
+      setRelayStatus("idle");
+      return;
+    }
+    let ws: WebSocket | null = null;
+    const debounce = setTimeout(() => {
+      setRelayStatus("checking");
+      let settled = false;
+      const done = (status: "ok" | "error") => {
+        if (settled) return;
+        settled = true;
+        ws?.close();
+        setRelayStatus(status);
+      };
+      try {
+        ws = new WebSocket(trimmed);
+        const timeout = setTimeout(() => done("error"), 5000);
+        ws.onopen = () => { clearTimeout(timeout); done("ok"); };
+        ws.onerror = () => { clearTimeout(timeout); done("error"); };
+      } catch {
+        done("error");
+      }
+    }, 500);
+    return () => { clearTimeout(debounce); ws?.close(); };
+  }, [relayUrlValue]);
+
+  function handleSaveRelay() {
+    const val = relayUrlValue.trim();
+    if (val && !val.startsWith("ws://") && !val.startsWith("wss://")) {
+      setRelayUrlError("URL musí začínat wss:// nebo ws://");
+      return;
+    }
+    setRelayUrlError(null);
+    if (val && val !== DEFAULT_RELAY_URL) {
+      localStorage.setItem(EVOLU_RELAY_KEY, val);
+    } else {
+      localStorage.removeItem(EVOLU_RELAY_KEY);
+    }
+    setRelaySaved(true);
+    setTimeout(() => window.location.reload(), 800);
+  }
+
   const [corsProxy, setCorsProxyState] = useState(() => getCorsProxy());
   const { timeFormat, setTimeFormat } = useTimeFormat();
   const { theme, setTheme } = useTheme();
@@ -618,6 +669,51 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
         {/* === Advanced section === */}
         <section className="mt-6">
           <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Pokročilé</h3>
+
+          {/* Relay URL */}
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm text-ink/70">Evolu relay URL</label>
+            {/* Relay connection badge */}
+            {relayStatus === "checking" && (
+              <span className="text-xs text-ink/40 flex items-center gap-1">
+                <RefreshCw size={10} className="animate-spin" /> Kontroluji…
+              </span>
+            )}
+            {relayStatus === "ok" && (
+              <span className="text-xs text-green-600 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                Dostupné
+              </span>
+            )}
+            {relayStatus === "error" && (
+              <span className="text-xs text-red-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                Nedostupné
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={relayUrlValue}
+              onChange={(e) => { setRelayUrlValue(e.target.value); setRelaySaved(false); setRelayUrlError(null); }}
+              placeholder={DEFAULT_RELAY_URL}
+              className={`flex-1 text-sm bg-ink/5 border rounded-lg px-3 py-1.5 focus:outline-none font-mono ${relayUrlError ? "border-red-400 focus:border-red-500" : "border-ink/20 focus:border-ink/40"}`}
+            />
+            <button
+              onClick={handleSaveRelay}
+              disabled={relaySaved}
+              className="text-sm px-3 py-1.5 bg-ink text-paper rounded-lg hover:bg-ink/80 disabled:opacity-50 transition-colors shrink-0"
+            >
+              {relaySaved ? "Restartuji…" : "Uložit"}
+            </button>
+          </div>
+          {relayUrlError && <p className="text-xs text-red-500 mt-1">{relayUrlError}</p>}
+          <p className="text-xs text-ink/40 mt-1 mb-4">
+            Změna relay URL odpojí synchronizaci s předchozím serverem. Aplikace se po uložení restartuje.
+            Prázdné pole = výchozí <code className="font-mono">free.evoluhq.com</code>.
+          </p>
+
           <label className="block text-sm text-ink/70 mb-1">CORS proxy URL</label>
           <input
             type="url"
