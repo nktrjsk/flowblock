@@ -14,6 +14,7 @@ import ExternalEvent from "./ExternalEvent";
 import DayCapacityBars from "./DayCapacityBars";
 import * as Evolu from "@evolu/common";
 import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const TIME_COLUMN_WIDTH = 48; // px
 const DAY_LABELS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -71,6 +72,11 @@ function getTodayIndex(weekStart: Date): number {
 export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
   const { insert, update } = useEvolu();
   const { timeFormat } = useTimeFormat();
+  const { effectiveTheme } = useTheme();
+  const ink = effectiveTheme === "dark" ? "245,240,232" : "26,26,46";
+  const gridHour    = `rgba(${ink},0.20)`;
+  const gridHalf    = `rgba(${ink},0.12)`;
+  const gridQuarter = `rgba(${ink},0.07)`;
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -437,7 +443,7 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
                 {HOURS.map((h) => (
                   <div
                     key={h}
-                    style={{ top: h * HOUR_HEIGHT_PX, borderColor: "rgba(26,26,46,0.2)" }}
+                    style={{ top: h * HOUR_HEIGHT_PX, borderColor: gridHour }}
                     className="absolute inset-x-0 border-t"
                   />
                 ))}
@@ -446,17 +452,17 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
                   <>
                     <div
                       key={`${h}-q1`}
-                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.25, borderColor: "rgba(26,26,46,0.07)", borderStyle: "dotted" }}
+                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.25, borderColor: gridQuarter, borderStyle: "dotted" }}
                       className="absolute inset-x-0 border-t"
                     />
                     <div
                       key={`${h}-half`}
-                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.5, borderColor: "rgba(26,26,46,0.12)", borderStyle: "dashed" }}
+                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.5, borderColor: gridHalf, borderStyle: "dashed" }}
                       className="absolute inset-x-0 border-t"
                     />
                     <div
                       key={`${h}-q3`}
-                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.75, borderColor: "rgba(26,26,46,0.07)", borderStyle: "dotted" }}
+                      style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.75, borderColor: gridQuarter, borderStyle: "dotted" }}
                       className="absolute inset-x-0 border-t"
                     />
                   </>
