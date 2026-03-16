@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.19.3 (2026-03-16)
+> **Verze dokumentu:** 0.19.4 (2026-03-16)
 > **Status:** Návrh MVP
 
 ---
@@ -560,14 +560,16 @@ druhý (overnight nebo vícedenní blok).
   - Segment MM: změní minuty o ±5 (rozsah 0–59); zastaví se na hranici,
     nepřetéká do hodin
   - Segment AM/PM (pouze 12h): přepíná mezi AM a PM
-- **Šipka vlevo / vpravo:** přepíná focus mezi segmenty (HH → MM → AM/PM a zpět)
+- **Šipka vpravo:** posune focus na další segment (HH → MM → AM/PM); z
+  posledního segmentu pole "Začátek" přejde na první segment pole "Konec";
+  z posledního segmentu pole "Konec" přejde na datum adjuster (viz sekce 5.13.2)
+- **Šipka vlevo:** posune focus na předchozí segment (AM/PM → MM → HH); z
+  prvního segmentu pole "Konec" přejde na poslední segment pole "Začátek"
+- **Tab:** přepíná mezi celými poli v pořadí title → Začátek → Konec →
+  Priorita → Hotovo (Tab skočí vždy na první segment daného pole)
 - **Přímý vstup číslic:** přepíše hodnotu segmentu; po vyplnění dvou číslic se
   focus automaticky přesune na další segment; libovolná hodnota je platná
   (žádný snap, žádné omezení na konkrétní minuty)
-- **Tab / Enter v segmentu MM (nebo AM/PM):** přesune focus na první segment
-  pole "Konec"
-- **Tab / Enter v posledním segmentu pole "Konec":** submittuje popover
-  (ekvivalent tlačítka "Hotovo")
 - **Prázdný segment při ztrátě focusu:** tiché vrácení na předchozí platnou
   hodnotu — žádná chybová hláška, žádná ztráta editace
 - **Zero-padding:** segment HH i MM se vždy zobrazí jako dvouciferné číslo
@@ -579,9 +581,7 @@ Pokud je end HH:MM < start HH:MM (nebo end HH:MM = start HH:MM), systém
 předpokládá, že blok přechází přes půlnoc. Vedle pole "Konec" se zobrazí
 malý badge **"+1 den"** (nebo konkrétní datum konce, např. "út 18. 3.").
 
-Pro vícedenní bloky (end je více než jeden den po startu) lze posunout
-datum konce tlačítky **"+1 den"** a **"−1 den"** vedle pole "Konec".
-Badge se aktualizuje a zobrazuje výsledné datum.
+Pro posun data konce slouží **datum adjuster** — viz sekce 5.13.2.
 
 Speciální případ: hodnota **24:00** v poli "Konec" je povolena (výhradně
 jako HH=24, MM=00) a interpretuje se jako 00:00 následujícího dne — tedy
@@ -611,6 +611,70 @@ overnight blok končící přesně na půlnoci. Interně se uloží jako 00:00
 
 *Poznámka: 15minutový snap (SNAP_MINUTES) se aplikuje výhradně při drag &
 resize operacích v kalendáři — v detail popovert není aktivní.*
+
+### 5.13.2 Klávesnicová navigace v detail popovert
+
+#### Tab flow
+
+Pořadí Tab focusu v popovert:
+
+```
+title → Začátek → Konec → Priorita → Hotovo
+```
+
+Akční prvky mimo Tab flow (tabIndex=-1): tlačítko X (zavřít), tlačítko Smazat,
+tlačítka ±1d (datum adjuster), tlačítko Odpojit úkol. Tyto prvky jsou dostupné
+myší nebo šipkami, ale Tab je přeskakuje — minimalizuje počet stisků pro
+standardní workflow.
+
+Tab na pole "Začátek" nebo "Konec" přesune focus na první segment (HH) daného pole.
+
+#### Navigace šipkami v TimeSegmentInput
+
+Uvnitř každého pole (Začátek / Konec) fungují šipky takto:
+
+| Klávesa | Chování |
+|---|---|
+| Šipka vpravo | HH → MM → (AM/PM v 12h formátu) → přechod do dalšího pole nebo adjusteru |
+| Šipka vlevo | Opačný směr; z prvního segmentu Konec → poslední segment Začátek |
+
+Přechody mezi poli:
+- Šipka vpravo z posledního segmentu **Začátek** → první segment **Konec**
+- Šipka vpravo z posledního segmentu **Konec** (MM nebo AM/PM) → **datum adjuster**
+- Šipka vlevo z prvního segmentu **Konec** → poslední segment **Začátek**
+- Šipka vlevo na adjusteru s hodnotou 0d → poslední segment **Konec**
+
+#### Datum adjuster
+
+Adjuster zobrazuje offset data konce bloku vůči dni začátku.
+
+- Zobrazení: **"+Nd"** (zvýrazněný) pokud N > 0; **"+0d"** (průhledný/disabled styl)
+  pokud N = 0
+- Je vždy přítomný vedle pole "Konec" (i při +0d)
+- **tabIndex=-1** — není součástí Tab flow; dostupný pouze šipkami z pole Konec
+- Na adjusteru s focusem:
+  - Šipka nahoru nebo vpravo: +1d (posune datum konce o jeden den dál)
+  - Šipka dolů nebo vlevo: −1d (posune datum konce o jeden den zpět); na hodnotě
+    0d se šipka dolů/vlevo vrátí focus na poslední segment pole "Konec"
+- Fyzická tlačítka ±1d (mouseclick) nejsou součástí Tab flow (tabIndex=-1)
+
+#### Priorita
+
+Celý blok priority je jeden focusovatelný element (div s tabIndex=0).
+
+- Šipka vpravo: posune vybranou prioritu doprava (none → low → medium → high);
+  zastaví se na hranici
+- Šipka vlevo: posune vybranou prioritu doleva (high → medium → low → none);
+  zastaví se na hranici
+- Vizuální border u vybrané priority se zobrazuje **pouze pokud má celý blok
+  focus** — při navigaci myší border není vidět
+
+#### Globální zkratky v popovert
+
+| Zkratka | Akce |
+|---|---|
+| Ctrl+Enter | Uložit a zavřít (ekvivalent tlačítka "Hotovo") — funguje kdekoliv v popovert |
+| Escape | Zavřít bez uložení |
 
 ---
 
