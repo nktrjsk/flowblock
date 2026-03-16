@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Fragment } from "react";
 import { useQuery } from "@evolu/react";
 import { evolu, useEvolu } from "../../db/evolu";
 import { TaskId, TimeBlockId } from "../../db/schema";
@@ -449,23 +449,20 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
                 ))}
                 {/* Sub-hour lines */}
                 {HOURS.map((h) => (
-                  <>
+                  <Fragment key={h}>
                     <div
-                      key={`${h}-q1`}
                       style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.25, borderColor: gridQuarter, borderStyle: "dotted" }}
                       className="absolute inset-x-0 border-t"
                     />
                     <div
-                      key={`${h}-half`}
                       style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.5, borderColor: gridHalf, borderStyle: "dashed" }}
                       className="absolute inset-x-0 border-t"
                     />
                     <div
-                      key={`${h}-q3`}
                       style={{ top: h * HOUR_HEIGHT_PX + HOUR_HEIGHT_PX * 0.75, borderColor: gridQuarter, borderStyle: "dotted" }}
                       className="absolute inset-x-0 border-t"
                     />
-                  </>
+                  </Fragment>
                 ))}
 
                 {/* Current time indicator */}
