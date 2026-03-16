@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.19.1 (2026-03-16)
+> **Verze dokumentu:** 0.19.2 (2026-03-16)
 > **Status:** Návrh MVP
 
 ---
@@ -657,13 +657,13 @@ resize operacích v kalendáři — v detail popovert není aktivní.*
 - [x] Rozšíření Toast systému o typ `error` (červený, 6s, zavírací tlačítko)
 
 ### Vrstva 3: ADHD vylepšení
-- [ ] Varování při přeplánování dne
-- [ ] Tiché přesunutí nesplněných úkolů na další den
-- [ ] Animace/zvuky při splnění
 - [x] Notifikace přechodů mezi time-blocky (viz useBlockTransitionNotifications)
 
 ### Budoucí rozšíření (mimo MVP)
 - Command bar s natural language parsing
+- Varování při přeplánování dne (energy-aware, viz sekce 11)
+- Tiché přesunutí nesplněných úkolů na další den
+- Animace/zvuky při splnění úkolu (dopaminová odměna)
 - **Projekty** (viz sekce 9)
 - **Rutiny / opakující se šablony** (viz sekce 10)
 - **Energetická náročnost úkolů** (viz sekce 11)
