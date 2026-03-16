@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.19.2 (2026-03-16)
+> **Verze dokumentu:** 0.19.3 (2026-03-16)
 > **Status:** Návrh MVP
 
 ---
@@ -242,6 +242,7 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 - Povrch (karty, panely): `#252540`
 - Text primární: `#f5f0e8` (krémová — stávající brand barva)
 - Akcenty: priority barvy mají samostatné dark mode varianty (viz sekce 5.5)
+- Vodící linky gridu: hodinové `#3a3c58`, půlhodinové `#2e3050`, čtvrthodinové `#252740`
 
 ### 5.5 Barvy time-bloků dle priority
 
@@ -286,6 +287,8 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
   dobře viditelné). Půlhodinové linky jemné (světlejší, tenčí). Čtvrthodinové
   linky nejjemnější nebo zcela bez linky — slouží jen jako snap target,
   nejsou vizuálně rušivé.
+  - Light mode: hodinové `#d1d5db`, půlhodinové `#e5e7eb`, čtvrthodinové `#f3f4f6`
+  - Dark mode: hodinové `#3a3c58`, půlhodinové `#2e3050`, čtvrthodinové `#252740`
 
 ### 5.7 Kapacitní lišty (per-day)
 
