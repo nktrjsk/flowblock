@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Trash2 } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
@@ -6,9 +6,11 @@ import { Priority } from "../../constants";
 import * as Evolu from "@evolu/common";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import TimeSegmentInput from "./TimeSegmentInput";
+import type { TimeSegmentInputHandle } from "./TimeSegmentInput";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
 
 const POPOVER_WIDTH = 272;
+const PRIORITIES: Priority[] = ["none", "low", "medium", "high"];
 
 interface TimeBlockPopoverProps {
   id: TimeBlockId;
@@ -47,7 +49,6 @@ export default function TimeBlockPopover({
   const priorityColors = usePriorityColors();
   const [titleValue, setTitleValue] = useState(title);
 
-  // Normalize end to day offset + minutes-within-day
   const [startMin, setStartMin] = useState(startMinutes % (24 * 60));
   const [endMin, setEndMin] = useState(endMinutes % (24 * 60));
   const [endDayOffset, setEndDayOffset] = useState(Math.floor(endMinutes / (24 * 60)));
@@ -56,7 +57,15 @@ export default function TimeBlockPopover({
   const endAbsolute = endDayOffset * 1440 + endMin;
   const isValid = endAbsolute > startMin;
 
-  // Positioning: open near cursor, prefer right side, fallback left
+  const startRef = useRef<TimeSegmentInputHandle>(null);
+  const endRef = useRef<TimeSegmentInputHandle>(null);
+  const adjusterRef = useRef<HTMLSpanElement>(null);
+  const prioGroupRef = useRef<HTMLDivElement>(null);
+  const [prioFocused, setPrioFocused] = useState(false);
+  const hotovoBtnRef = useRef<HTMLButtonElement>(null);
+
+  const handleSaveRef = useRef<() => void>(() => {});
+
   const estimatedHeight = 300;
   const left = Math.max(8, Math.min(
     Math.round(anchorPos.x - POPOVER_WIDTH / 2),
@@ -64,38 +73,29 @@ export default function TimeBlockPopover({
   ));
   const top = Math.max(8, Math.min(anchorPos.y - 16, window.innerHeight - estimatedHeight - 8));
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   function handleSave() {
     if (!isValid) return;
-
     const trimmed = titleValue.trim();
     if (trimmed) {
       const r = Evolu.NonEmptyString1000.from(trimmed);
       if (r.ok) update("timeBlock", { id, title: r.value });
     }
-
-    update("timeBlock", {
-      id,
-      start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMin, 0)),
-    });
-    update("timeBlock", {
-      id,
-      end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMin, endDayOffset)),
-    });
-    update("timeBlock", {
-      id,
-      priority: Evolu.NonEmptyString100.orThrow(prioValue),
-    });
-
+    update("timeBlock", { id, start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMin, 0)) });
+    update("timeBlock", { id, end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMin, endDayOffset)) });
+    update("timeBlock", { id, priority: Evolu.NonEmptyString100.orThrow(prioValue) });
     onClose();
   }
+
+  handleSaveRef.current = handleSave;
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); handleSaveRef.current(); }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   function handleDelete() {
     update("timeBlock", { id, isDeleted: 1 });
@@ -109,19 +109,39 @@ export default function TimeBlockPopover({
     onClose();
   }
 
+  function focusAfterEnd() {
+    prioGroupRef.current?.focus();
+  }
+
+  function handlePrioKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const idx = PRIORITIES.indexOf(prioValue);
+      setPrioValue(PRIORITIES[Math.min(PRIORITIES.length - 1, idx + 1)]);
+    }
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const idx = PRIORITIES.indexOf(prioValue);
+      setPrioValue(PRIORITIES[Math.max(0, idx - 1)]);
+    }
+    if (e.key === "Tab" && !e.shiftKey) {
+      e.preventDefault();
+      hotovoBtnRef.current?.focus();
+    }
+  }
+
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 z-[90]" onClick={onClose} />
 
-      {/* Popover */}
       <div
         style={{ position: "fixed", left, top, width: POPOVER_WIDTH, zIndex: 100 }}
         className="bg-surface rounded-xl shadow-xl border border-ink/10 p-4 flex flex-col gap-3"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close */}
+        {/* Close — outside tab order, use Escape */}
         <button
+          tabIndex={-1}
           onClick={onClose}
           className="absolute top-3 right-3 p-1 rounded hover:bg-ink/5 text-ink/40 hover:text-ink/70 transition-colors"
         >
@@ -146,9 +166,12 @@ export default function TimeBlockPopover({
           <div className="flex-1 flex flex-col gap-1">
             <span className="text-[10px] text-ink/40">Začátek</span>
             <TimeSegmentInput
+              ref={startRef}
               totalMinutes={startMin}
               format={timeFormat}
               onChange={setStartMin}
+              onTabOut={() => endRef.current?.focusFirst()}
+              onArrowRight={() => endRef.current?.focusFirst()}
             />
           </div>
           <div className="flex-1 flex flex-col gap-1">
@@ -156,6 +179,7 @@ export default function TimeBlockPopover({
               <span className="text-[10px] text-ink/40">Konec</span>
               <div className="flex items-center gap-1">
                 <button
+                  tabIndex={-1}
                   onClick={() => setEndDayOffset(Math.max(0, endDayOffset - 1))}
                   disabled={endDayOffset === 0}
                   className="text-[10px] text-ink/35 hover:text-ink/70 disabled:opacity-20 transition-colors leading-none"
@@ -164,9 +188,10 @@ export default function TimeBlockPopover({
                   −1d
                 </button>
                 <button
+                  tabIndex={-1}
                   onClick={() => setEndDayOffset(endDayOffset + 1)}
                   className="text-[10px] text-ink/35 hover:text-ink/70 transition-colors leading-none"
-                  title="O den později"
+                  title="O den później"
                 >
                   +1d
                 </button>
@@ -174,16 +199,45 @@ export default function TimeBlockPopover({
             </div>
             <div className="flex items-center gap-1.5">
               <TimeSegmentInput
+                ref={endRef}
                 totalMinutes={endMin}
                 format={timeFormat}
                 onChange={setEndMin}
                 hasError={!isValid}
+                onTabOut={focusAfterEnd}
+                onArrowRight={() => adjusterRef.current?.focus()}
+                onArrowLeft={() => startRef.current?.focusLast()}
               />
-              {endDayOffset > 0 && (
-                <span className="text-[9px] text-ink/50 bg-ink/8 rounded px-1 py-0.5 shrink-0 leading-none">
-                  +{endDayOffset}d
-                </span>
-              )}
+              <span
+                ref={adjusterRef}
+                tabIndex={-1}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowUp" || e.key === "ArrowRight") {
+                    e.preventDefault();
+                    setEndDayOffset((d) => d + 1);
+                  }
+                  if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    const newVal = endDayOffset - 1;
+                    if (newVal < 0) {
+                      endRef.current?.focusLast();
+                    } else {
+                      setEndDayOffset(newVal);
+                    }
+                  }
+                  if (e.key === "Tab" && !e.shiftKey) {
+                    e.preventDefault();
+                    prioGroupRef.current?.focus();
+                  }
+                }}
+                className={`text-[9px] rounded px-1 py-0.5 shrink-0 leading-none cursor-default outline-none focus:ring-1 focus:ring-ink/30 transition-colors ${
+                  endDayOffset > 0
+                    ? "text-ink/50 bg-ink/8"
+                    : "text-ink/20 bg-transparent"
+                }`}
+              >
+                {endDayOffset > 0 ? `+${endDayOffset}d` : "+0d"}
+              </span>
             </div>
           </div>
         </div>
@@ -193,11 +247,19 @@ export default function TimeBlockPopover({
           <p className="text-[10px] text-red-500 -mt-1.5">Konec musí být po začátku</p>
         )}
 
-        {/* Priority */}
-        <div className="flex items-center gap-1">
-          {(["none", "low", "medium", "high"] as Priority[]).map((p) => (
+        {/* Priority — single focusable block, arrows change value */}
+        <div
+          ref={prioGroupRef}
+          tabIndex={0}
+          onKeyDown={handlePrioKeyDown}
+          onFocus={() => setPrioFocused(true)}
+          onBlur={() => setPrioFocused(false)}
+          className="flex items-center gap-1 outline-none"
+        >
+          {PRIORITIES.map((p) => (
             <button
               key={p}
+              tabIndex={-1}
               onClick={() => setPrioValue(p)}
               title={p === "none" ? "žádná" : p === "low" ? "nízká" : p === "medium" ? "střední" : "vysoká"}
               className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] transition-all ${
@@ -206,7 +268,7 @@ export default function TimeBlockPopover({
               style={{
                 backgroundColor: priorityColors[p].bg,
                 color: priorityColors[p].text,
-                outline: prioValue === p ? `2px solid ${priorityColors[p].border}` : undefined,
+                outline: prioFocused && prioValue === p ? `2px solid ${priorityColors[p].border}` : undefined,
               }}
             >
               <span
@@ -218,7 +280,7 @@ export default function TimeBlockPopover({
           ))}
         </div>
 
-        {/* Connected task */}
+        {/* Connected task — outside tab order for now */}
         {taskId && (
           <div className="flex items-center gap-2 text-xs text-ink/60 bg-ink/5 rounded-lg px-3 py-2">
             <span className="flex-1 truncate">
@@ -226,6 +288,7 @@ export default function TimeBlockPopover({
               <span className="text-ink/80">{taskTitle ?? "—"}</span>
             </span>
             <button
+              tabIndex={-1}
               onClick={handleDisconnect}
               className="shrink-0 hover:text-red-500 transition-colors"
               title="Odpojit úkol"
@@ -238,6 +301,7 @@ export default function TimeBlockPopover({
         {/* Actions */}
         <div className="flex items-center justify-between pt-1 border-t border-ink/8">
           <button
+            tabIndex={-1}
             onClick={handleDelete}
             className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors"
           >
@@ -245,6 +309,7 @@ export default function TimeBlockPopover({
             Smazat
           </button>
           <button
+            ref={hotovoBtnRef}
             onClick={handleSave}
             disabled={!isValid}
             className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
