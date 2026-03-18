@@ -27,6 +27,8 @@ export const DRAG_DATA_KEY = "application/flowblock";
 
 export const NOTIFICATION_LEAD_MINUTES = 5;
 export const NOTIFICATIONS_ENABLED_KEY = "flowblock_notifications";
+export const TRANSITION_BUFFER_KEY = "flowblock_transition_buffer"; // "0" | "5" | "10" | "15"
+export const SHORTCUT_HINTS_KEY = "flowblock_shortcut_hints"; // "true" | "false", default true
 
 export type DragPayload =
   | { type: "task"; taskId: string }

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Trash2 } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
-import { Priority } from "../../constants";
+import { Priority, SHORTCUT_HINTS_KEY } from "../../constants";
 import * as Evolu from "@evolu/common";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import TimeSegmentInput from "./TimeSegmentInput";
@@ -63,6 +63,10 @@ export default function TimeBlockPopover({
   const prioGroupRef = useRef<HTMLDivElement>(null);
   const [prioFocused, setPrioFocused] = useState(false);
   const hotovoBtnRef = useRef<HTMLButtonElement>(null);
+  const showHints = localStorage.getItem(SHORTCUT_HINTS_KEY) !== "false";
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const cancelDeleteRef = useRef<HTMLButtonElement>(null);
+  const confirmDeleteBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleSaveRef = useRef<() => void>(() => {});
 
@@ -89,13 +93,24 @@ export default function TimeBlockPopover({
   handleSaveRef.current = handleSave;
 
   useEffect(() => {
+    if (showDeleteConfirm) cancelDeleteRef.current?.focus();
+  }, [showDeleteConfirm]);
+
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (showDeleteConfirm) { setShowDeleteConfirm(false); return; }
+        onClose();
+      }
       if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); handleSaveRef.current(); }
+      if (e.key === "Delete" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        setShowDeleteConfirm(true);
+      }
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, showDeleteConfirm]);
 
   function handleDelete() {
     update("timeBlock", { id, isDeleted: 1 });
@@ -299,28 +314,58 @@ export default function TimeBlockPopover({
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-1 border-t border-ink/8">
-          <button
-            tabIndex={-1}
-            onClick={handleDelete}
-            className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors"
-          >
-            <Trash2 size={13} />
-            Smazat
-          </button>
-          <button
-            ref={hotovoBtnRef}
-            onClick={handleSave}
-            disabled={!isValid}
-            className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-              isValid
-                ? "bg-ink text-paper hover:bg-ink/85"
-                : "bg-ink/15 text-ink/30 cursor-not-allowed"
-            }`}
-          >
-            Hotovo
-          </button>
-        </div>
+        {showDeleteConfirm ? (
+          <div className="flex items-center justify-between pt-1 border-t border-ink/8">
+            <span className="text-xs text-ink/60">Smazat blok?</span>
+            <div className="flex gap-2">
+              <button
+                ref={cancelDeleteRef}
+                onClick={() => setShowDeleteConfirm(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Tab") { e.preventDefault(); confirmDeleteBtnRef.current?.focus(); }
+                }}
+                className="text-xs px-3 py-1.5 border border-ink/20 rounded-lg hover:bg-ink/5 transition-colors"
+              >
+                Zrušit
+              </button>
+              <button
+                ref={confirmDeleteBtnRef}
+                onClick={handleDelete}
+                onKeyDown={(e) => {
+                  if (e.key === "Tab") { e.preventDefault(); cancelDeleteRef.current?.focus(); }
+                }}
+                className="text-xs px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                Ano, smazat
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between pt-1 border-t border-ink/8">
+            <button
+              tabIndex={-1}
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors"
+            >
+              <Trash2 size={13} />
+              Smazat
+              {showHints && <span className="text-[9px] opacity-50 ml-0.5">Del</span>}
+            </button>
+            <button
+              ref={hotovoBtnRef}
+              onClick={handleSave}
+              disabled={!isValid}
+              className={`text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                isValid
+                  ? "bg-ink text-paper hover:bg-ink/85"
+                  : "bg-ink/15 text-ink/30 cursor-not-allowed"
+              }`}
+            >
+              Hotovo
+              {showHints && <span className="text-[9px] opacity-50">Ctrl+↵</span>}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
