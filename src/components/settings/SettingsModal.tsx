@@ -7,7 +7,7 @@ import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/ev
 import { CalendarId } from "../../db/schema";
 import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
-import { NOTIFICATIONS_ENABLED_KEY } from "../../constants";
+import { NOTIFICATIONS_ENABLED_KEY, TRANSITION_BUFFER_KEY, SHORTCUT_HINTS_KEY } from "../../constants";
 import { useToast } from "../ui/Toast";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -145,6 +145,31 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
     }
     setRelaySaved(true);
     setTimeout(() => window.location.reload(), 800);
+  }
+
+  const [transitionBuffer, setTransitionBufferState] = useState<"0" | "5" | "10" | "15">(
+    () => (localStorage.getItem(TRANSITION_BUFFER_KEY) as "0" | "5" | "10" | "15") || "0",
+  );
+
+  function handleBufferChange(val: "0" | "5" | "10" | "15") {
+    setTransitionBufferState(val);
+    localStorage.setItem(TRANSITION_BUFFER_KEY, val);
+  }
+
+  const [shortcutHints, setShortcutHints] = useState(
+    () => localStorage.getItem(SHORTCUT_HINTS_KEY) !== "false",
+  );
+
+  function handleHintsToggle() {
+    const next = !shortcutHints;
+    setShortcutHints(next);
+    localStorage.setItem(SHORTCUT_HINTS_KEY, String(next));
+  }
+
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  async function handleResetData() {
+    await evolu.resetAppOwner();
   }
 
   const [corsProxy, setCorsProxyState] = useState(() => getCorsProxy());
@@ -633,6 +658,44 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
           </div>
         </section>
 
+        {/* === Planning section === */}
+        <section className="mt-6">
+          <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Plánování</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-ink/80">Přestávka mezi bloky</p>
+              <p className="text-xs text-ink/40 mt-0.5">Šrafovaná zóna za každým time-blokem, blokuje slot.</p>
+            </div>
+            <div className="flex rounded-lg border border-ink/15 overflow-hidden shrink-0">
+              {(["0", "5", "10", "15"] as const).map((val) => (
+                <button
+                  key={val}
+                  onClick={() => handleBufferChange(val)}
+                  className={`px-2.5 py-1.5 text-xs transition-colors ${
+                    transitionBuffer === val
+                      ? "bg-ink text-paper"
+                      : "bg-transparent text-ink/50 hover:bg-ink/5"
+                  }`}
+                >
+                  {val === "0" ? "Vypnuto" : `${val} min`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-4">
+            <div>
+              <p className="text-sm text-ink/80">Zkratkové hinty</p>
+              <p className="text-xs text-ink/40 mt-0.5">Zobrazit klávesové zkratky u tlačítek (např. Del, Ctrl+↵).</p>
+            </div>
+            <button
+              onClick={handleHintsToggle}
+              className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${shortcutHints ? "bg-ink" : "bg-ink/20"}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 rounded-full bg-surface shadow transition-all ${shortcutHints ? "left-5" : "left-1"}`} />
+            </button>
+          </div>
+        </section>
+
         {/* === Notifications section === */}
         <section className="mt-6">
           <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Oznámení</h3>
@@ -727,6 +790,45 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
             <a href="https://corsproxy.io" target="_blank" rel="noopener noreferrer" className="underline hover:text-ink/60">corsproxy.io</a>{" "}
             je zdarma dostupná varianta.
           </p>
+
+          {/* Reset data */}
+          <div className="mt-6 pt-4 border-t border-ink/10">
+            {!showResetConfirm ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-ink/80">Smazat lokální data</p>
+                  <p className="text-xs text-ink/40 mt-0.5">Smaže lokální data a vytvoří novou identitu. Data na sync serveru zůstanou nedešifrovatelná.</p>
+                </div>
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="text-sm px-3 py-1.5 border border-red-300 text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shrink-0"
+                >
+                  Smazat data
+                </button>
+              </div>
+            ) : (
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">Opravdu smazat všechna data?</p>
+                <p className="text-xs text-red-600/70 dark:text-red-400/70 mb-3">
+                  Tato akce je nevratná. Smažou se všechny lokální úkoly, time-bloky, poznámky a kalendáře. Vytvoří se nová identita. Data na sync serveru zůstanou nedešifrovatelná.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleResetData}
+                    className="text-sm px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    Smazat
+                  </button>
+                  <button
+                    onClick={() => setShowResetConfirm(false)}
+                    className="text-sm px-3 py-1.5 border border-ink/20 rounded-lg hover:bg-ink/5 transition-colors"
+                  >
+                    Zrušit
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
       </div>
     </div>

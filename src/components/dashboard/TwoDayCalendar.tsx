@@ -7,6 +7,7 @@ import {
   SNAP_MINUTES,
   GRID_HEIGHT_PX,
   DRAG_DATA_KEY,
+  TRANSITION_BUFFER_KEY,
   DragPayload,
 } from "../../constants";
 import TimeBlockComponent from "../calendar/TimeBlock";
@@ -79,6 +80,18 @@ export default function TwoDayCalendar() {
   const gridHour    = `rgba(${ink},0.20)`;
   const gridHalf    = `rgba(${ink},0.12)`;
   const gridQuarter = `rgba(${ink},0.07)`;
+  const [bufferMinutes, setBufferMinutes] = useState<number>(
+    () => parseInt(localStorage.getItem(TRANSITION_BUFFER_KEY) ?? "0", 10) || 0,
+  );
+  // Re-read buffer if localStorage changes (settings modal saves it directly)
+  useEffect(() => {
+    const onStorage = () => {
+      setBufferMinutes(parseInt(localStorage.getItem(TRANSITION_BUFFER_KEY) ?? "0", 10) || 0);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -169,6 +182,7 @@ export default function TwoDayCalendar() {
       }
     }
 
+    startMinutes = adjustForBuffer(dayIndex, startMinutes, durationMinutes);
     setGhost({ dayIndex, startMinutes, durationMinutes });
   }
 
@@ -193,7 +207,7 @@ export default function TwoDayCalendar() {
     const rawMinutes = getMinutesFromEvent(e, colEl);
 
     if (payload.type === "task") {
-      const startMinutes = clamp(rawMinutes, 0, 24 * 60 - SNAP_MINUTES);
+      const startMinutes = adjustForBuffer(dayIndex, clamp(rawMinutes, 0, 24 * 60 - SNAP_MINUTES), 60);
       const endMinutes = clamp(startMinutes + 60, SNAP_MINUTES, 24 * 60);
       const task = taskRows.find((t) => t.id === payload.taskId);
       const title = (task?.title ?? null) ?? Evolu.NonEmptyString1000.orThrow("Nový blok");
@@ -215,11 +229,8 @@ export default function TwoDayCalendar() {
       const blockEnd = new Date(block.end);
       const blockDurationMinutes = (blockEnd.getTime() - blockStart.getTime()) / (1000 * 60);
 
-      const newStartMinutes = clamp(
-        rawMinutes - payload.offsetMinutes,
-        0,
-        24 * 60 - SNAP_MINUTES,
-      );
+      const rawStart = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
+      const newStartMinutes = adjustForBuffer(dayIndex, rawStart, blockDurationMinutes);
       const newEndMinutes = clamp(newStartMinutes + blockDurationMinutes, SNAP_MINUTES, 24 * 60);
 
       update("timeBlock", {
@@ -306,6 +317,26 @@ export default function TwoDayCalendar() {
           dayDate,
         };
       });
+  }
+
+  function getBufferZones(dayIndex: number): Array<{ start: number; end: number }> {
+    if (bufferMinutes === 0) return [];
+    return getBlocksForDay(dayIndex).map((b) => ({
+      start: b.startMinutes + b.durationMinutes,
+      end: b.startMinutes + b.durationMinutes + bufferMinutes,
+    }));
+  }
+
+  function adjustForBuffer(dayIndex: number, startMinutes: number, durationMinutes: number): number {
+    if (bufferMinutes === 0) return startMinutes;
+    const zones = getBufferZones(dayIndex);
+    let adjusted = startMinutes;
+    for (const zone of zones) {
+      if (adjusted < zone.end && adjusted + durationMinutes > zone.start) {
+        adjusted = zone.end;
+      }
+    }
+    return clamp(adjusted, 0, 24 * 60 - durationMinutes);
   }
 
   function getExternalEventsForDay(dayIndex: number) {
@@ -449,6 +480,33 @@ export default function TwoDayCalendar() {
                     durationMinutes={ev.durationMinutes}
                   />
                 ))}
+
+                {/* Transition buffer zones */}
+                {bufferMinutes > 0 && blocks.map((block) => {
+                  const bufTop = (block.startMinutes + block.durationMinutes) / 60 * HOUR_HEIGHT_PX;
+                  const bufHeight = bufferMinutes / 60 * HOUR_HEIGHT_PX;
+                  return (
+                    <div
+                      key={`buf-${block.id}`}
+                      style={{
+                        position: "absolute",
+                        top: bufTop,
+                        left: 0,
+                        right: 0,
+                        height: bufHeight,
+                        pointerEvents: "none",
+                        zIndex: 6,
+                        background: `repeating-linear-gradient(
+                          -45deg,
+                          rgba(${ink},0.06) 0px,
+                          rgba(${ink},0.06) 3px,
+                          transparent 3px,
+                          transparent 8px
+                        )`,
+                      }}
+                    />
+                  );
+                })}
 
                 {/* Time blocks */}
                 {blocks.map((block) => (
