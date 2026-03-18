@@ -20,6 +20,7 @@
             pkgs.bun
             pkgs.git
 	    pkgs.claude-code
+	    pkgs.screen
           ];
 
           shellHook = ''
