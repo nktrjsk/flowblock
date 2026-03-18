@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.20.0 (2026-03-18)
+> **Verze dokumentu:** 0.21.0 (2026-03-18)
 > **Status:** Návrh MVP
 
 ---
@@ -144,6 +144,17 @@ Poznámka: VTODO z CalDAV serverů se ignorují — FlowBlock spravuje úkoly sa
 | `description` | String (nullable) | Volitelný popis |
 | `weight` | Float | Rotační váha (viz sekce 9) |
 | `created_at` | Timestamp | Čas vytvoření |
+
+### 4.6 Notes
+
+Rychlé poznámky zachycené z inboxu prefixem `//`. Jsou samostatnou entitou oddělenou od Tasks — nemají prioritu, status ani energii. Slouží jako dočasné záchytné místo pro myšlenky, které zatím nejsou úkolem.
+
+| Sloupec | Typ | Popis |
+|---|---|---|
+| `id` | Evolu ID | Primární klíč |
+| `content` | NonEmptyString1000 | Text poznámky |
+| `status` | `new` \| `reviewed` | Stav (`new` = nová, `reviewed` = zpracovaná) |
+| `converted_task_id` | Task ID (nullable) | Reference na úkol, pokud byla poznámka převedena |
 
 ---
 
@@ -688,6 +699,27 @@ Celý blok priority je jeden focusovatelný element (div s tabIndex=0).
 | Delete | Otevře inline confirm dialog pro smazání bloku (mimo text inputy) |
 | Escape | Pokud je otevřen confirm dialog: zavře confirm dialog. Jinak: zavře popover bez uložení. |
 
+### 5.14 Quick Notes — rychlé poznámky z inboxu
+
+#### Spouštěč
+
+V `AddTaskInput` (inline input v inboxu) — pokud text začíná prefixem `//`, přepne se do režimu poznámky:
+
+- Placeholder se změní na "Rychlá poznámka…" (místo "Název úkolu…")
+- Vizuální styl inputu se mírně odliší (border tmavší, text ztlumený) — signal, že jde o jiný typ záznamu
+- Tlačítko "+ Přidat" (zavřený stav inputu) zůstává beze změny
+- Nápověda pro prefix je součástí placeholder textu v standardním režimu: "Název úkolu… (// = poznámka)"
+
+#### Chování při uložení
+
+- Enter v režimu poznámky vytvoří nový záznam v tabulce `note` (viz sekce 4.6) se statusem `new`
+- Prefix `//` se do obsahu poznámky neukládá — ukládá se jen text za ním
+- Prázdný text za prefixem (tj. pouze `//`) se neuloží — stejné chování jako u prázdného úkolu
+
+#### Co se s poznámkami děje dál
+
+MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — funkce pro prohlížení a zpracování poznámek je budoucí feature. Datový model (`converted_task_id`, status `reviewed`) je připraven pro pozdější Review mode (viz sekce 14).
+
 ---
 
 ## 6. Tech Stack
@@ -724,6 +756,7 @@ Celý blok priority je jeden focusovatelný element (div s tabIndex=0).
 - [x] Vlastní Evolu relay URL — konfigurace v Nastavení, Pokročilé (viz sekce 5.9)
 - [x] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
 - [x] Inline confirm dialog při smazání time-bloku — viz sekce 5.13
+- [x] Quick Notes — rychlé poznámky z inboxu prefixem `//` (viz sekce 4.6, 5.14)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
 - [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
