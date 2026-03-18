@@ -13,6 +13,9 @@ export type CalendarId = typeof CalendarId.Type;
 export const ExternalEventId = Evolu.id("ExternalEvent");
 export type ExternalEventId = typeof ExternalEventId.Type;
 
+export const NoteId = Evolu.id("Note");
+export type NoteId = typeof NoteId.Type;
+
 // --- Domain types ---
 // Status: "inbox" | "planned" | "done" | "someday"
 // Priority: "none" | "low" | "medium" | "high"
@@ -66,6 +69,13 @@ export const Database = {
     start: Evolu.NonEmptyString100,
     end: Evolu.NonEmptyString100,
     is_all_day: Evolu.SqliteBoolean,
+  },
+  note: {
+    id: NoteId,
+    content: Evolu.NonEmptyString1000,
+    // "new" | "reviewed"
+    status: Evolu.NonEmptyString100,
+    converted_task_id: Evolu.nullOr(TaskId),
   },
 } satisfies Evolu.EvoluSchema;
 

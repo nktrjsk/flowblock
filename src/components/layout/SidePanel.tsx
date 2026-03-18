@@ -4,6 +4,7 @@ import { evolu, useEvolu } from "../../db/evolu";
 import { TaskId, TimeBlockId } from "../../db/schema";
 import { DRAG_DATA_KEY, DragPayload } from "../../constants";
 import TaskItem from "../inbox/TaskItem";
+import NoteItem from "../inbox/NoteItem";
 import AddTaskInput from "../inbox/AddTaskInput";
 import NowBlock from "../dashboard/NowBlock";
 import UpcomingList from "../dashboard/UpcomingList";
@@ -27,6 +28,14 @@ const doneTasksQuery = evolu.createQuery((db) =>
     .orderBy("updatedAt", "desc"),
 );
 
+const notesQuery = evolu.createQuery((db) =>
+  db
+    .selectFrom("note")
+    .select(["id", "content", "status"])
+    .where("isDeleted", "is", null)
+    .orderBy("createdAt", "asc"),
+);
+
 export default function SidePanel() {
   const [doneOpen, setDoneOpen] = useState(false);
   const [dropHover, setDropHover] = useState(false);
@@ -34,6 +43,8 @@ export default function SidePanel() {
 
   const inboxRows = useQuery(inboxTasksQuery);
   const doneRows = useQuery(doneTasksQuery);
+  const allNoteRows = useQuery(notesQuery);
+  const noteRows = allNoteRows.filter((r) => r.status === "new");
 
   function handleDragOver(e: React.DragEvent) {
     if (e.dataTransfer.types.includes(DRAG_DATA_KEY)) {
@@ -72,7 +83,7 @@ export default function SidePanel() {
 
   return (
     <div
-      className={`w-96 flex flex-col overflow-y-auto border-r border-ink/10 shrink-0 transition-colors ${dropHover ? "bg-green-50 border-green-300" : ""}`}
+      className={`w-96 flex flex-col overflow-y-auto border-r border-ink/10 shrink-0 transition-colors ${dropHover ? "bg-ink/8 border-ink/30" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -83,7 +94,17 @@ export default function SidePanel() {
         <div className="text-xs font-semibold uppercase tracking-wider text-ink/40 px-1 mb-1">
           Inbox
         </div>
-        {inboxRows.length === 0 && (
+        {noteRows.map((row) => (
+          <NoteItem key={row.id} id={row.id} content={row.content ?? ""} />
+        ))}
+        {noteRows.length > 0 && inboxRows.length > 0 && (
+          <div className="flex items-center gap-2 px-1 py-1 my-0.5">
+            <div className="flex-1 border-t border-dashed border-ink/20" />
+            <span className="text-[10px] text-ink/30 uppercase tracking-wider shrink-0">Úkoly</span>
+            <div className="flex-1 border-t border-dashed border-ink/20" />
+          </div>
+        )}
+        {inboxRows.length === 0 && noteRows.length === 0 && (
           <p className="text-xs text-ink/30 text-center py-4">Žádné úkoly</p>
         )}
         {inboxRows.map((row) => (
