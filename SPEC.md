@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.19.4 (2026-03-16)
+> **Verze dokumentu:** 0.20.0 (2026-03-18)
 > **Status:** Návrh MVP
 
 ---
@@ -511,6 +511,17 @@ Na mobilni verzi se detail zobrazuje jako **bottom sheet** (ne popover).
   [ Smazat blok ]               [ Hotovo ]
 ```
 
+Tlačítko "Smazat blok" nespustí smazání okamžitě — zobrazí **inline confirm dialog** přímo na místě action baru:
+
+```
+  Smazat blok?      [ Zrušit ]  [ Smazat ]
+```
+
+- Focus se automaticky přesune na tlačítko "Zrušit" při otevření confirm dialogu
+- Tab uvnitř confirm dialogu cyklí pouze mezi "Zrušit" a "Smazat" (Tab loop)
+- Escape v confirm dialogu zavře confirm dialog (ne celý popover)
+- Klávesa `Delete` (mimo text inputy) otevře confirm dialog; po otevření Escape confirm dialog zavře
+
 Editovatelne parametry:
 - `title` — inline textovy input
 - `start` a `end` — time pickery (segmentovaný vstup HH:MM), viz sekce 5.13.1
@@ -674,7 +685,8 @@ Celý blok priority je jeden focusovatelný element (div s tabIndex=0).
 | Zkratka | Akce |
 |---|---|
 | Ctrl+Enter | Uložit a zavřít (ekvivalent tlačítka "Hotovo") — funguje kdekoliv v popovert |
-| Escape | Zavřít bez uložení |
+| Delete | Otevře inline confirm dialog pro smazání bloku (mimo text inputy) |
+| Escape | Pokud je otevřen confirm dialog: zavře confirm dialog. Jinak: zavře popover bez uložení. |
 
 ---
 
@@ -711,6 +723,7 @@ Celý blok priority je jeden focusovatelný element (div s tabIndex=0).
 - [x] Dark mode — přepínač v Nastavení, systémová detekce, localStorage persistence (viz sekce 5.4, 5.9)
 - [x] Vlastní Evolu relay URL — konfigurace v Nastavení, Pokročilé (viz sekce 5.9)
 - [x] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
+- [x] Inline confirm dialog při smazání time-bloku — viz sekce 5.13
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
 - [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
