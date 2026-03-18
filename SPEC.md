@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.21.0 (2026-03-18)
+> **Verze dokumentu:** 0.22.0 (2026-03-18)
 > **Status:** Návrh MVP
 
 ---
@@ -300,6 +300,12 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
   nejsou vizuálně rušivé.
   - Light mode: hodinové `#d1d5db`, půlhodinové `#e5e7eb`, čtvrthodinové `#f3f4f6`
   - Dark mode: hodinové `#3a3c58`, půlhodinové `#2e3050`, čtvrthodinové `#252740`
+- **Transition buffer zóny** — pokud je v Nastavení → Plánování nastavena přestávka mezi bloky (viz sekce 5.9):
+  - Za každým time-blokem se vykreslí šrafovaná zóna odpovídající délky (5 / 10 / 15 min)
+  - Vizuální styl: diagonální šrafy (`repeating-linear-gradient`, úhel −45°), velmi nízká opacita — rušivost na minimum
+  - `pointer-events: none` — zóna není klikatelná, neblokuje drop
+  - Při drag & drop a resize se blok automaticky posune za buffer zónu, pokud by do ní zasahoval (clamping na hranici zóny)
+  - Buffer zóna je čistě vizuální + UX pomůcka; neukládá se do DB, neovlivňuje uložené časy time-bloků
 
 ### 5.7 Kapacitní lišty (per-day)
 
@@ -401,6 +407,16 @@ proto nezabírá místo v bottom tab baru.
   - Uložení do localStorage (preference zařízení)
 
 Sekce denní kapacita bude doplněna postupně.
+
+*Plánování*
+- **Přestávka mezi bloky** — segment control se čtyřmi možnostmi: `Vypnuto` / `5 min` / `10 min` / `15 min` (default = Vypnuto)
+  - Ukládá se do localStorage (`flowblock_transition_buffer`)
+  - Po každém time-bloku v kalendáři se zobrazí šrafovaná zóna odpovídající délky; zóna vizuálně signalizuje, že slot je vyhrazen na přechod
+  - Při drag & drop i resize se blok automaticky posune tak, aby nepřetékal do buffer zóny jiného bloku
+  - Viz sekce 5.6 (interakce) pro detailní chování buffer zón v kalendáři
+- **Zkratkové hinty** — toggle (default = zapnuto)
+  - Pokud zapnuto: u tlačítek v popovert se zobrazují malé klávesové zkratky (např. `Del` u tlačítka Smazat, `Ctrl+↵` u tlačítka Hotovo)
+  - Ukládá se do localStorage (`flowblock_shortcut_hints`)
 
 ### 5.10 Sync tlačítko v Headeru
 
@@ -757,6 +773,7 @@ MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — fu
 - [x] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
 - [x] Inline confirm dialog při smazání time-bloku — viz sekce 5.13
 - [x] Quick Notes — rychlé poznámky z inboxu prefixem `//` (viz sekce 4.6, 5.14)
+- [x] Sekce Plánování v Nastavení — přestávka mezi bloky (transition buffer zóny) + zkratkové hinty (viz sekce 5.6, 5.9)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
 - [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
