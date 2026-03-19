@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { RefreshCw, Pencil, X } from "lucide-react";
 import { Mnemonic } from "@evolu/common";
 import * as Evolu from "@evolu/common";
@@ -15,6 +15,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 interface SettingsModalProps {
   onClose: () => void;
   syncErrors: Record<string, string>;
+  highlightSync?: boolean;
 }
 
 const calendarsQuery = evolu.createQuery((db) =>
@@ -29,7 +30,7 @@ const COLORS = ["#4f8ef7", "#e85d5d", "#4caf7a", "#e09b2f", "#9b59b6", "#1a1a2e"
 
 const INPUT_CLS = "w-full text-sm bg-ink/5 border border-ink/20 rounded-lg px-3 py-1.5 focus:outline-none focus:border-ink/40";
 
-export default function SettingsModal({ onClose, syncErrors }: SettingsModalProps) {
+export default function SettingsModal({ onClose, syncErrors, highlightSync }: SettingsModalProps) {
   const { insert, update } = useEvolu();
   const { show } = useToast();
 
@@ -97,6 +98,19 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
   const mergedErrors: Record<string, string> = { ...syncErrors, ...calErrors };
 
   // Advanced
+  const relaySectionRef = useRef<HTMLElement>(null);
+  const [relayHighlighted, setRelayHighlighted] = useState(false);
+
+  useEffect(() => {
+    if (!highlightSync) return;
+    const el = relaySectionRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setRelayHighlighted(true);
+    const t = setTimeout(() => setRelayHighlighted(false), 2000);
+    return () => clearTimeout(t);
+  }, [highlightSync]);
+
   const [relayUrlValue, setRelayUrlValue] = useState(
     () => localStorage.getItem(EVOLU_RELAY_KEY) || DEFAULT_RELAY_URL,
   );
@@ -701,7 +715,7 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
         </section>
 
         {/* === Advanced section === */}
-        <section className="mt-6">
+        <section ref={relaySectionRef} className={`mt-6 rounded-lg transition-all duration-300 ${relayHighlighted ? "ring-2 ring-ink/30 bg-ink/3 px-3 py-2 -mx-3" : ""}`}>
           <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Pokročilé</h3>
 
           {/* Relay URL */}
