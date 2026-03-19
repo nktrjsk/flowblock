@@ -6,6 +6,9 @@ import { DRAG_DATA_KEY, DragPayload } from "../../constants";
 import TaskItem from "../inbox/TaskItem";
 import NoteItem from "../inbox/NoteItem";
 import AddTaskInput from "../inbox/AddTaskInput";
+import WelcomeCard, { WELCOME_DISMISSED_KEY } from "../inbox/WelcomeCard";
+import HelpModal from "../help/HelpModal";
+import SettingsModal from "../settings/SettingsModal";
 import NowBlock from "../dashboard/NowBlock";
 import UpcomingList from "../dashboard/UpcomingList";
 import * as Evolu from "@evolu/common";
@@ -39,6 +42,11 @@ const notesQuery = evolu.createQuery((db) =>
 export default function SidePanel() {
   const [doneOpen, setDoneOpen] = useState(false);
   const [dropHover, setDropHover] = useState(false);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(
+    () => localStorage.getItem(WELCOME_DISMISSED_KEY) === "1"
+  );
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsHighlightSync, setSettingsHighlightSync] = useState(false);
   const { update } = useEvolu();
 
   const inboxRows = useQuery(inboxTasksQuery);
@@ -94,30 +102,40 @@ export default function SidePanel() {
         <div className="text-xs font-semibold uppercase tracking-wider text-ink/40 px-1 mb-1">
           Inbox
         </div>
-        {noteRows.map((row) => (
-          <NoteItem key={row.id} id={row.id} content={row.content ?? ""} />
-        ))}
-        {noteRows.length > 0 && inboxRows.length > 0 && (
-          <div className="flex items-center gap-2 px-1 py-1 my-0.5">
-            <div className="flex-1 border-t border-dashed border-ink/20" />
-            <span className="text-[10px] text-ink/30 uppercase tracking-wider shrink-0">Úkoly</span>
-            <div className="flex-1 border-t border-dashed border-ink/20" />
-          </div>
-        )}
-        {inboxRows.length === 0 && noteRows.length === 0 && (
-          <p className="text-xs text-ink/30 text-center py-4">Žádné úkoly</p>
-        )}
-        {inboxRows.map((row) => (
-          <TaskItem
-            key={row.id}
-            id={row.id}
-            title={row.title ?? ""}
-            priority={row.priority}
-            status={row.status ?? "inbox"}
-            energy={row.energy}
-            waitingFor={row.waiting_for}
+        {!welcomeDismissed && inboxRows.length === 0 && noteRows.length === 0 ? (
+          <WelcomeCard
+            onDismiss={() => setWelcomeDismissed(true)}
+            onOpenHelp={() => setHelpOpen(true)}
+            onOpenSettings={() => setSettingsHighlightSync(true)}
           />
-        ))}
+        ) : (
+          <>
+            {noteRows.map((row) => (
+              <NoteItem key={row.id} id={row.id} content={row.content ?? ""} />
+            ))}
+            {noteRows.length > 0 && inboxRows.length > 0 && (
+              <div className="flex items-center gap-2 px-1 py-1 my-0.5">
+                <div className="flex-1 border-t border-dashed border-ink/20" />
+                <span className="text-[10px] text-ink/30 uppercase tracking-wider shrink-0">Úkoly</span>
+                <div className="flex-1 border-t border-dashed border-ink/20" />
+              </div>
+            )}
+            {inboxRows.length === 0 && noteRows.length === 0 && (
+              <p className="text-xs text-ink/30 text-center py-4">Žádné úkoly</p>
+            )}
+            {inboxRows.map((row) => (
+              <TaskItem
+                key={row.id}
+                id={row.id}
+                title={row.title ?? ""}
+                priority={row.priority}
+                status={row.status ?? "inbox"}
+                energy={row.energy}
+                waitingFor={row.waiting_for}
+              />
+            ))}
+          </>
+        )}
         <div className="mt-1">
           <AddTaskInput />
         </div>
@@ -154,6 +172,15 @@ export default function SidePanel() {
               />
             ))}
         </div>
+      )}
+
+      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
+      {settingsHighlightSync && (
+        <SettingsModal
+          onClose={() => setSettingsHighlightSync(false)}
+          syncErrors={{}}
+          highlightSync
+        />
       )}
     </div>
   );
