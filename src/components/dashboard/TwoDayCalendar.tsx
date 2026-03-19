@@ -200,7 +200,8 @@ export default function TwoDayCalendar() {
     if ((e.target as HTMLElement).closest("[data-block],[data-popover]")) return;
     const colEl = getDayColumnEl(dayIndex);
     if (!colEl) return;
-    const minutes = clamp(snapMinutes(((e.clientY - colEl.getBoundingClientRect().top) / HOUR_HEIGHT_PX) * 60), 0, 24 * 60 - SNAP_MINUTES);
+    const rawMinutes = ((e.clientY - colEl.getBoundingClientRect().top) / HOUR_HEIGHT_PX) * 60;
+    const minutes = clamp(Math.floor(rawMinutes / SNAP_MINUTES) * SNAP_MINUTES, 0, 24 * 60 - SNAP_MINUTES);
 
     const now = Date.now();
     const last = lastClickRef.current;
@@ -286,16 +287,29 @@ export default function TwoDayCalendar() {
     const rawMinutes = getMinutesFromEvent(e, colEl);
 
     if (payload.type === "task") {
-      const startMinutes = adjustForBuffer(dayIndex, clamp(rawMinutes, 0, 24 * 60 - SNAP_MINUTES), 60);
-      const endMinutes = clamp(startMinutes + 60, SNAP_MINUTES, 24 * 60);
       const task = taskRows.find((t) => t.id === payload.taskId);
-      const title = (task?.title ?? null) ?? Evolu.NonEmptyString1000.orThrow("Nový blok");
-      insert("timeBlock", {
-        task_id: payload.taskId as unknown as TaskId,
-        title,
-        start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMinutes)),
-        end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMinutes)),
-      });
+      const targetBlockEl = (e.target as HTMLElement).closest("[data-block-id]") as HTMLElement | null;
+      const targetBlockId = targetBlockEl?.dataset.blockId ?? null;
+
+      if (targetBlockId) {
+        // Assign task to existing block
+        update("timeBlock", {
+          id: targetBlockId as unknown as TimeBlockId,
+          task_id: payload.taskId as unknown as TaskId,
+          ...(task?.title && { title: task.title }),
+        });
+      } else {
+        // Create new block from task
+        const startMinutes = adjustForBuffer(dayIndex, clamp(rawMinutes, 0, 24 * 60 - SNAP_MINUTES), 60);
+        const endMinutes = clamp(startMinutes + 60, SNAP_MINUTES, 24 * 60);
+        const title = (task?.title ?? null) ?? Evolu.NonEmptyString1000.orThrow("Nový blok");
+        insert("timeBlock", {
+          task_id: payload.taskId as unknown as TaskId,
+          title,
+          start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMinutes)),
+          end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMinutes)),
+        });
+      }
       update("task", {
         id: payload.taskId as unknown as TaskId,
         status: Evolu.NonEmptyString100.orThrow("planned"),
