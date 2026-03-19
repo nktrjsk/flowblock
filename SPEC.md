@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.22.0 (2026-03-18)
+> **Verze dokumentu:** 0.23.0 (2026-03-19)
 > **Status:** Návrh MVP
 
 ---
@@ -277,9 +277,26 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 | `none` | `#2a2c45` | `#475569` | `#94a3b8` |
 | external | `#252540` | `#f5f0e855` dashed | `#f5f0e866` |
 
+#### Vizuální rozlišení — prázdný vs. linked blok
+
+| Typ bloku | Border | Pozadí | Titulek | Ikona |
+|---|---|---|---|---|
+| Prázdný (bez `task_id`) | dashed | průhledné (nižší opacita) | muted barva | — |
+| Linked (s `task_id`) | solid | plné (vyšší opacita) | normální barva | `ListTodo` (Lucide, 10px) |
+
+Vizuální rozlišení umožňuje uživateli periferním viděním okamžitě rozpoznat, které bloky mají přiřazený úkol a které jsou "volné" rezervace.
+
 ### 5.6 Interakce
 
+- **Vytvoření TimeBlocku double-click + drag** — double-click na prázdné místo v kalendáři
+  spustí drag mode pro definici délky bloku. Táhnutím dolů uživatel určí délku bloku (snap 15 min).
+  Po puštění se blok vytvoří a okamžitě se otevře detail popover pro editaci.
+  Pokud uživatel pustí bez tažení, vytvoří se 60minutový blok.
 - **Drag tasku z inboxu** do kalendářového sloupce → vytvoří TimeBlock + změní status úkolu na `planned`
+- **Přiřazení tasku přetažením na existující blok** — přetažení tasku z inboxu na existující
+  TimeBlock (místo na prázdné místo v kalendáři) přiřadí task k bloku. Task se označí jako
+  `planned`. Při hoveru nad blokem se blok zvýrazní ring highlight efektem — vizuální signál,
+  že drop přiřadí task (ne vytvoří nový blok).
 - **Drag time-blocku v kalendáři** → přesun na jiný slot/den; drag funguje z celé plochy bloku
   - Při dragu se zobrazí **ghost** (poloprůhledný dashed obrys) ukazující cílový slot
   - Vedle ghosta se zobrazí **tooltip s přesným časem** (`HH:MM – HH:MM`); tooltip se přepne na druhou stranu, pokud je blok ve dvou pravých sloupcích
@@ -511,9 +528,7 @@ Time-blocky jsou zbarveny dle priority celým pozadím bloku (viz sekce 5.5). Ž
 
 Na mobilní verzi (sekce 5.8) je priorita v timeline zobrazena stejným barevným pruhem na levém okraji karty bloku. Nastavení priority je dostupné přes detail úkolu (long-press nebo tap na kartu).
 
-### 5.13 Detail time-bloku — popover (KONCEPT, ceka na prototyp)
-
-> **Stav:** Navrhované chování. Bude nejdrive prototypovano; implementace do kodu nastane az po odsouhlaseni prototypu.
+### 5.13 Detail time-bloku — popover
 
 #### Spoustec
 
@@ -564,7 +579,23 @@ Editovatelne parametry:
 | Smazani bloku | Ukol se vrati do stavu `inbox` |
 | Zmena priority bloku | Priority bloku a ukolu jsou nezavisle; zmena bloku neovlivni ukol |
 
-MVP nepodporuje prepojeni bloku na jiny ukol — to je mozne pres drag & drop v kalendari.
+Přepojení bloku na jiný úkol je možné přes task search dropdown v popovert nebo přetažením tasku z inboxu na existující blok v kalendáři.
+
+#### Přiřazení úkolu z popovert — task search dropdown
+
+Sekce "Propojený úkol" v detail popovert podporuje dva stavy:
+
+**Žádný úkol není přiřazen:**
+Zobrazí se tlačítko "Přiřadit úkol…" (ikona `Link2`, Lucide). Kliknutím se otevře
+inline dropdown se search inputem a živým filtrovým seznamem tasků z inboxu.
+- Šipky nahoru/dolů pohybují kurzorem v seznamu
+- Enter vybere zvýrazněný task a přiřadí ho k bloku; task se označí jako `planned`
+- Escape zavře dropdown bez změny
+
+**Úkol je přiřazen:**
+Zobrazí se název přiřazeného tasku se dvěma akcemi:
+- Tlačítko "Změnit" — otevře search dropdown pro přiřazení jiného tasku
+- Tlačítko "Odpojit" — odstraní vazbu; task se vrátí do stavu `inbox`
 
 ### 5.13.1 Time input — segmentovaný vstup
 
@@ -774,6 +805,10 @@ MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — fu
 - [x] Inline confirm dialog při smazání time-bloku — viz sekce 5.13
 - [x] Quick Notes — rychlé poznámky z inboxu prefixem `//` (viz sekce 4.6, 5.14)
 - [x] Sekce Plánování v Nastavení — přestávka mezi bloky (transition buffer zóny) + zkratkové hinty (viz sekce 5.6, 5.9)
+- [x] Vytvoření TimeBlocku double-click + drag v kalendáři (bez tažení = 60min blok, s tažením = custom délka; viz sekce 5.6)
+- [x] Vizuální rozlišení prázdného vs. linked bloku — dashed/solid border, opacita, `ListTodo` ikona (viz sekce 5.5)
+- [x] Přiřazení tasku přetažením na existující blok v kalendáři — ring highlight při hoveru (viz sekce 5.6)
+- [x] Task search dropdown v detail popovert — vyhledávání, přiřazení, změna a odpojení tasku (viz sekce 5.13)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
 - [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents
