@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.25.0 (2026-03-19)
+> **Verze dokumentu:** 0.26.0 (2026-03-19)
 > **Status:** Návrh MVP
 
 ---
@@ -368,6 +368,8 @@ bez uložení.
 
 **Co mobilní verze neobsahuje:** týdenní pohled, drag & drop plánování,
 resize time-bloků, dashboard s projekty.
+
+> **TBD:** Detailní specifikace mobilního inboxu (komponenty, pořadí položek, touch interakce) bude doplněna samostatně.
 
 ### 5.9 Nastavení
 
@@ -764,12 +766,18 @@ Celý blok priority je jeden focusovatelný element (div s tabIndex=0).
 
 #### Spouštěč
 
-V `AddTaskInput` (inline input v inboxu) — pokud text začíná prefixem `//`, přepne se do režimu poznámky:
+Logika pro rozlišení task vs. poznámka je sdílená přes hook `useQuickAdd` a funguje identicky na obou entry pointech:
+
+- **Desktop:** `AddTaskInput` — inline input ve sloupci inboxu, aktivuje se kliknutím na "+ Přidat"
+- **Mobil:** `QuickAddSheet` — bottom sheet, aktivuje se FAB tlačítkem (+)
+
+Pokud text začíná prefixem `//`, vstup se přepne do režimu poznámky:
 
 - Placeholder se změní na "Rychlá poznámka…" (místo "Název úkolu…")
 - Vizuální styl inputu se mírně odliší (border tmavší, text ztlumený) — signal, že jde o jiný typ záznamu
 - Tlačítko "+ Přidat" (zavřený stav inputu) zůstává beze změny
 - Nápověda pro prefix je součástí placeholder textu v standardním režimu: "Název úkolu… (// = poznámka)"
+- Na mobilu se label `QuickAddSheet` dynamicky mění: "Nový úkol" → "Nová poznámka"
 
 #### Chování při uložení
 
@@ -818,6 +826,8 @@ MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — fu
 - [x] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
 - [x] Inline confirm dialog při smazání time-bloku — viz sekce 5.13
 - [x] Quick Notes — rychlé poznámky z inboxu prefixem `//` (viz sekce 4.6, 5.14)
+- [x] Sjednocení task/note entry přes `useQuickAdd` hook — desktop (`AddTaskInput`) i mobil (`QuickAddSheet`) funkčně identické (viz sekce 5.14)
+- [x] Mobilní inbox — `TaskItem` a `NoteItem` sdílené s desktopem; touch-always-visible akce (viz sekce 5.8)
 - [ ] Sekce Plánování v Nastavení — přestávka mezi bloky (transition buffer zóny) dočasně odstraněna, bude reimplementována; zkratkové hinty funkční (viz sekce 5.6, 5.9)
 - [x] Vytvoření TimeBlocku double-click + drag v kalendáři (bez tažení = 60min blok, s tažením = custom délka; viz sekce 5.6)
 - [x] Vizuální rozlišení prázdného vs. linked bloku — dashed/solid border, opacita, `ListTodo` ikona (viz sekce 5.5)
