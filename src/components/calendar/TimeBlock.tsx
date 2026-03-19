@@ -247,7 +247,7 @@ export default function TimeBlock({
             {taskId && <ListTodo size={18} className="opacity-60 shrink-0" />}
           </div>
           <span className={`text-xs leading-tight mt-0.5 truncate ${taskId ? "font-medium" : "font-normal opacity-70"}`}>
-            {title}
+            {taskId && taskTitle ? taskTitle : title}
           </span>
         </div>
 

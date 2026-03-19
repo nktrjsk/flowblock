@@ -152,7 +152,6 @@ export default function TimeBlockPopover({
     update("timeBlock", {
       id,
       task_id: task.id,
-      ...(task.title && { title: task.title }),
     });
     if (taskId && taskId !== task.id) {
       update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
