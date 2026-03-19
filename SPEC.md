@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.23.0 (2026-03-19)
+> **Verze dokumentu:** 0.24.0 (2026-03-19)
 > **Status:** Návrh MVP
 
 ---
@@ -297,7 +297,8 @@ Vizuální rozlišení umožňuje uživateli periferním viděním okamžitě ro
   TimeBlock (místo na prázdné místo v kalendáři) přiřadí task k bloku. Task se označí jako
   `planned`. Při hoveru nad blokem se blok zvýrazní ring highlight efektem — vizuální signál,
   že drop přiřadí task (ne vytvoří nový blok).
-- **Drag time-blocku v kalendáři** → přesun na jiný slot/den; drag funguje z celé plochy bloku
+- **Drag time-blocku v kalendáři** → přesun na jiný slot/den; drag funguje z celé plochy bloku.
+  Při dragu se blok centruje pod kurzor (offset = polovina délky bloku).
   - Při dragu se zobrazí **ghost** (poloprůhledný dashed obrys) ukazující cílový slot
   - Vedle ghosta se zobrazí **tooltip s přesným časem** (`HH:MM – HH:MM`); tooltip se přepne na druhou stranu, pokud je blok ve dvou pravých sloupcích
   - Drop funguje i když je cílový čas překrytý jiným blokem (overlay mechanismus)
@@ -323,6 +324,7 @@ Vizuální rozlišení umožňuje uživateli periferním viděním okamžitě ro
   - `pointer-events: none` — zóna není klikatelná, neblokuje drop
   - Při drag & drop a resize se blok automaticky posune za buffer zónu, pokud by do ní zasahoval (clamping na hranici zóny)
   - Buffer zóna je čistě vizuální + UX pomůcka; neukládá se do DB, neovlivňuje uložené časy time-bloků
+  - **Stav implementace:** Feature byla dočasně odstraněna z důvodu chyb; bude reimplementována od základů.
 
 ### 5.7 Kapacitní lišty (per-day)
 
@@ -431,6 +433,7 @@ Sekce denní kapacita bude doplněna postupně.
   - Po každém time-bloku v kalendáři se zobrazí šrafovaná zóna odpovídající délky; zóna vizuálně signalizuje, že slot je vyhrazen na přechod
   - Při drag & drop i resize se blok automaticky posune tak, aby nepřetékal do buffer zóny jiného bloku
   - Viz sekce 5.6 (interakce) pro detailní chování buffer zón v kalendáři
+  - **Stav implementace:** Feature byla dočasně odstraněna; bude reimplementována od základů.
 - **Zkratkové hinty** — toggle (default = zapnuto)
   - Pokud zapnuto: u tlačítek v popovert se zobrazují malé klávesové zkratky (např. `Del` u tlačítka Smazat, `Ctrl+↵` u tlačítka Hotovo)
   - Ukládá se do localStorage (`flowblock_shortcut_hints`)
@@ -581,20 +584,24 @@ Editovatelne parametry:
 
 Přepojení bloku na jiný úkol je možné přes task search dropdown v popovert nebo přetažením tasku z inboxu na existující blok v kalendáři.
 
-#### Přiřazení úkolu z popovert — task search dropdown
+#### Přiřazení úkolu z popovert — task search input
 
 Sekce "Propojený úkol" v detail popovert podporuje dva stavy:
 
 **Žádný úkol není přiřazen:**
-Zobrazí se tlačítko "Přiřadit úkol…" (ikona `Link2`, Lucide). Kliknutím se otevře
-inline dropdown se search inputem a živým filtrovým seznamem tasků z inboxu.
-- Šipky nahoru/dolů pohybují kurzorem v seznamu
+Zobrazí se inline search input s ikonou `Link2` (Lucide) nalevo. Dropdown
+se otevírá při focusu inputu (ne kliknutím na tlačítko) a zavírá se okamžitě
+při ztrátě focusu — bez prodlevy.
+- Šipky nahoru/dolů pohybují kurzorem v dropdownu
 - Enter vybere zvýrazněný task a přiřadí ho k bloku; task se označí jako `planned`
 - Escape zavře dropdown bez změny
 
+Tab flow v popovert zahrnuje search input: Priorita → Search input → Hotovo
+(Shift+Tab funguje v opačném směru).
+
 **Úkol je přiřazen:**
 Zobrazí se název přiřazeného tasku se dvěma akcemi:
-- Tlačítko "Změnit" — otevře search dropdown pro přiřazení jiného tasku
+- Tlačítko "Změnit" — zobrazí search input pro přiřazení jiného tasku
 - Tlačítko "Odpojit" — odstraní vazbu; task se vrátí do stavu `inbox`
 
 ### 5.13.1 Time input — segmentovaný vstup
@@ -688,7 +695,7 @@ resize operacích v kalendáři — v detail popovert není aktivní.*
 Pořadí Tab focusu v popovert:
 
 ```
-title → Začátek → Konec → Priorita → Hotovo
+title → Začátek → Konec → Priorita → Search input (pokud není úkol přiřazen) → Hotovo
 ```
 
 Akční prvky mimo Tab flow (tabIndex=-1): tlačítko X (zavřít), tlačítko Smazat,
@@ -804,7 +811,7 @@ MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — fu
 - [x] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
 - [x] Inline confirm dialog při smazání time-bloku — viz sekce 5.13
 - [x] Quick Notes — rychlé poznámky z inboxu prefixem `//` (viz sekce 4.6, 5.14)
-- [x] Sekce Plánování v Nastavení — přestávka mezi bloky (transition buffer zóny) + zkratkové hinty (viz sekce 5.6, 5.9)
+- [ ] Sekce Plánování v Nastavení — přestávka mezi bloky (transition buffer zóny) dočasně odstraněna, bude reimplementována; zkratkové hinty funkční (viz sekce 5.6, 5.9)
 - [x] Vytvoření TimeBlocku double-click + drag v kalendáři (bez tažení = 60min blok, s tažením = custom délka; viz sekce 5.6)
 - [x] Vizuální rozlišení prázdného vs. linked bloku — dashed/solid border, opacita, `ListTodo` ikona (viz sekce 5.5)
 - [x] Přiřazení tasku přetažením na existující blok v kalendáři — ring highlight při hoveru (viz sekce 5.6)
