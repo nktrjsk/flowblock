@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.24.0 (2026-03-19)
+> **Verze dokumentu:** 0.24.1 (2026-03-19)
 > **Status:** Návrh MVP
 
 ---
@@ -292,11 +292,12 @@ Vizuální rozlišení umožňuje uživateli periferním viděním okamžitě ro
   spustí drag mode pro definici délky bloku. Táhnutím dolů uživatel určí délku bloku (snap 15 min).
   Po puštění se blok vytvoří a okamžitě se otevře detail popover pro editaci.
   Pokud uživatel pustí bez tažení, vytvoří se 60minutový blok.
-- **Drag tasku z inboxu** do kalendářového sloupce → vytvoří TimeBlock + změní status úkolu na `planned`
+- **Drag tasku z inboxu** do kalendářového sloupce → vytvoří TimeBlock + změní status úkolu na `planned`.
+  Nad **prázdným místem** v kalendáři se zobrazí ghost (poloprůhledný dashed obrys) jako náhled nového bloku.
 - **Přiřazení tasku přetažením na existující blok** — přetažení tasku z inboxu na existující
   TimeBlock (místo na prázdné místo v kalendáři) přiřadí task k bloku. Task se označí jako
-  `planned`. Při hoveru nad blokem se blok zvýrazní ring highlight efektem — vizuální signál,
-  že drop přiřadí task (ne vytvoří nový blok).
+  `planned`. Při hoveru nad existujícím blokem ghost zmizí a blok se zvýrazní (`ring-2 ring-ink/40`) —
+  vizuální signál, že drop přiřadí task (ne vytvoří nový blok).
 - **Drag time-blocku v kalendáři** → přesun na jiný slot/den; drag funguje z celé plochy bloku.
   Při dragu se blok centruje pod kurzor (offset = polovina délky bloku).
   - Při dragu se zobrazí **ghost** (poloprůhledný dashed obrys) ukazující cílový slot
