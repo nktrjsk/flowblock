@@ -33,6 +33,9 @@ export type DragPayload =
   | { type: "task"; taskId: string }
   | { type: "timeblock"; timeBlockId: string; offsetMinutes: number; taskId?: string };
 
+// Module-level drag state — readable during dragover (dataTransfer.getData is blocked by browsers until drop)
+export const activeDrag: { payload: DragPayload | null } = { payload: null };
+
 export function isDragPayload(x: unknown): x is DragPayload {
   if (typeof x !== "object" || x === null) return false;
   const p = x as Record<string, unknown>;

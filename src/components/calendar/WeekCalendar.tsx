@@ -9,6 +9,7 @@ import {
   DRAG_DATA_KEY,
   DragPayload,
   isDragPayload,
+  activeDrag,
 } from "../../constants";
 import TimeBlockComponent from "./TimeBlock";
 import ExternalEvent from "./ExternalEvent";
@@ -228,9 +229,6 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
       }
     : null;
 
-  // Current drag payload (used during dragover to calculate ghost duration)
-  const dragPayloadRef = useRef<DragPayload | null>(null);
-
   function getMinutesFromEvent(
     e: React.DragEvent | React.MouseEvent,
     dayColumnEl: HTMLElement,
@@ -257,14 +255,9 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
     let startMinutes = rawMinutes;
     let durationMinutes = 60;
 
-    if (dragPayloadRef.current?.type === "timeblock") {
-      const payload = dragPayloadRef.current;
-      startMinutes = clamp(
-        rawMinutes - payload.offsetMinutes,
-        0,
-        24 * 60 - SNAP_MINUTES,
-      );
-      // Find existing block duration
+    if (activeDrag.payload?.type === "timeblock") {
+      const payload = activeDrag.payload;
+      startMinutes = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
       const block = timeBlockRows.find((b) => b.id === payload.timeBlockId);
       if (block && block.start && block.end) {
         const dayDate = getDayDate(weekStart, dayIndex);
@@ -286,7 +279,6 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
   function handleDrop(e: React.DragEvent, dayIndex: number) {
     e.preventDefault();
     setGhost(null);
-    dragPayloadRef.current = null;
 
     const raw = e.dataTransfer.getData(DRAG_DATA_KEY);
     if (!raw) return;
@@ -351,18 +343,6 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
     }
   }
 
-  function handleDragEnter(e: React.DragEvent) {
-    const raw = e.dataTransfer.getData(DRAG_DATA_KEY);
-    if (raw) {
-      try {
-        const p = JSON.parse(raw);
-        if (isDragPayload(p)) dragPayloadRef.current = p;
-      } catch {
-        // noop
-      }
-    }
-  }
-
   function getPlannedMinutesForDay(dayIndex: number): number {
     const dayDate = getDayDate(weekStart, dayIndex);
     const dayStart = new Date(dayDate);
@@ -389,8 +369,8 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
       if (ghost.dayIndex === dayIndex) {
         planned += ghost.durationMinutes;
       }
-      if (dragPayloadRef.current?.type === "timeblock") {
-        const origBlock = timeBlockRows.find((b) => b.id === (dragPayloadRef.current as { type: "timeblock"; timeBlockId: string }).timeBlockId);
+      if (activeDrag.payload?.type === "timeblock") {
+        const origBlock = timeBlockRows.find((b) => b.id === (activeDrag.payload as { type: "timeblock"; timeBlockId: string }).timeBlockId);
         if (origBlock?.start && origBlock?.end) {
           const origS = new Date(origBlock.start);
           if (origS >= dayStart && origS <= dayEnd) {
@@ -493,7 +473,6 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
           className="flex"
           style={{ height: GRID_HEIGHT_PX, minHeight: GRID_HEIGHT_PX }}
           onDragLeave={handleDragLeave}
-          onDragEnter={handleDragEnter}
         >
           {/* Time labels column */}
           <div

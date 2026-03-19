@@ -9,6 +9,7 @@ import {
   DragPayload,
   HOUR_HEIGHT_PX,
   SNAP_MINUTES,
+  activeDrag,
 } from "../../constants";
 import * as Evolu from "@evolu/common";
 import TimeBlockPopover from "./TimeBlockPopover";
@@ -104,9 +105,8 @@ export default function TimeBlock({
       return;
     }
     isDragging.current = true;
-    const blockTopPx = (e.currentTarget as HTMLElement).getBoundingClientRect().top;
-    const cursorOffsetPx = e.clientY - blockTopPx;
-    const offsetMinutes = Math.round((cursorOffsetPx / HOUR_HEIGHT_PX) * 60 / SNAP_MINUTES) * SNAP_MINUTES;
+    // Center block under cursor
+    const offsetMinutes = Math.round(displayDuration / 2 / SNAP_MINUTES) * SNAP_MINUTES;
 
     const payload: DragPayload = {
       type: "timeblock",
@@ -116,11 +116,14 @@ export default function TimeBlock({
     };
     e.dataTransfer.setData(DRAG_DATA_KEY, JSON.stringify(payload));
     e.dataTransfer.effectAllowed = "move";
+    // Store in module variable — dataTransfer.getData() is blocked in dragover by browsers
+    activeDrag.payload = payload;
   }
 
   function handleDragEnd() {
     isDragging.current = false;
     justDragged.current = true;
+    activeDrag.payload = null;
     setTimeout(() => { justDragged.current = false; }, 200);
   }
 

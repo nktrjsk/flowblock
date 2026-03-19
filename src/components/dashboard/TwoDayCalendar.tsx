@@ -9,6 +9,7 @@ import {
   DRAG_DATA_KEY,
   DragPayload,
   isDragPayload,
+  activeDrag,
 } from "../../constants";
 import TimeBlockComponent from "../calendar/TimeBlock";
 import ExternalEvent from "../calendar/ExternalEvent";
@@ -209,8 +210,6 @@ export default function TwoDayCalendar() {
       }
     : null;
 
-  const dragPayloadRef = useRef<DragPayload | null>(null);
-
   function getMinutesFromEvent(
     e: React.DragEvent | React.MouseEvent,
     dayColumnEl: HTMLElement,
@@ -236,8 +235,8 @@ export default function TwoDayCalendar() {
     let startMinutes = rawMinutes;
     let durationMinutes = 60;
 
-    if (dragPayloadRef.current?.type === "timeblock") {
-      const payload = dragPayloadRef.current;
+    if (activeDrag.payload?.type === "timeblock") {
+      const payload = activeDrag.payload;
       startMinutes = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
       const block = timeBlockRows.find((b) => b.id === payload.timeBlockId);
       if (block && block.start && block.end) {
@@ -260,7 +259,6 @@ export default function TwoDayCalendar() {
   function handleDrop(e: React.DragEvent, dayIndex: number) {
     e.preventDefault();
     setGhost(null);
-    dragPayloadRef.current = null;
 
     const raw = e.dataTransfer.getData(DRAG_DATA_KEY);
     if (!raw) return;
@@ -319,18 +317,6 @@ export default function TwoDayCalendar() {
     }
   }
 
-  function handleDragEnter(e: React.DragEvent) {
-    const raw = e.dataTransfer.getData(DRAG_DATA_KEY);
-    if (raw) {
-      try {
-        const p = JSON.parse(raw);
-        if (isDragPayload(p)) dragPayloadRef.current = p;
-      } catch {
-        // noop
-      }
-    }
-  }
-
   function getPlannedMinutesForDay(dayIndex: number): number {
     const dayDate = days[dayIndex];
     const dayStart = new Date(dayDate);
@@ -356,8 +342,8 @@ export default function TwoDayCalendar() {
       if (ghost.dayIndex === dayIndex) {
         planned += ghost.durationMinutes;
       }
-      if (dragPayloadRef.current?.type === "timeblock") {
-        const origBlock = timeBlockRows.find((b) => b.id === (dragPayloadRef.current as { type: "timeblock"; timeBlockId: string }).timeBlockId);
+      if (activeDrag.payload?.type === "timeblock") {
+        const origBlock = timeBlockRows.find((b) => b.id === (activeDrag.payload as { type: "timeblock"; timeBlockId: string }).timeBlockId);
         if (origBlock?.start && origBlock?.end) {
           const origS = new Date(origBlock.start);
           if (origS >= dayStart && origS <= dayEnd) {
@@ -458,7 +444,6 @@ export default function TwoDayCalendar() {
           className="flex"
           style={{ height: GRID_HEIGHT_PX, minHeight: GRID_HEIGHT_PX }}
           onDragLeave={handleDragLeave}
-          onDragEnter={handleDragEnter}
         >
           {/* Time labels column */}
           <div
