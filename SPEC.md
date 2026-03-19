@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.24.1 (2026-03-19)
+> **Verze dokumentu:** 0.25.0 (2026-03-19)
 > **Status:** Návrh MVP
 
 ---
@@ -576,12 +576,18 @@ Editovatelne parametry:
 
 #### Chovani pri editaci propojeného ukolu
 
-| Akce | Dopad na propojeny ukol |
-|---|---|
-| Zmena `title` bloku | Zadny dopad — blok ma vlastni nazev nezavisly na ukolu |
-| Odpojeni ukolu (x) | Ukol se vrati do stavu `inbox`; blok se stane volnym (bez `task_id`) |
-| Smazani bloku | Ukol se vrati do stavu `inbox` |
-| Zmena priority bloku | Priority bloku a ukolu jsou nezavisle; zmena bloku neovlivni ukol |
+TimeBlock si uchovává vlastní `title` a `priority` nezávisle na přiřazeném tasku. Při zobrazení mají taskové hodnoty přednost — title a priority přiřazeného tasku vizuálně "překryjí" vlastní hodnoty bloku, ale data bloku zůstávají v DB nedotčena. Po odpojení tasku se blok automaticky vrátí na svá původní nastavení bez nutnosti jakékoliv další akce ze strany uživatele.
+
+| Akce | Dopad na blok | Dopad na úkol |
+|---|---|---|
+| Přiřazení tasku k bloku | `task_id` se uloží; vlastní `title` a `priority` bloku se nepřepisují | Task se označí jako `planned` |
+| Zobrazení linked bloku | Zobrazuje se `task.title` a `task.priority` (mají přednost před hodnotami bloku) | — |
+| Změna `title` bloku | Uloží se do vlastního `title` bloku; po odpojení tasku se opět zobrazí | Žádný dopad |
+| Změna `priority` bloku | Uloží se do vlastní `priority` bloku; po odpojení tasku se opět projeví | Žádný dopad |
+| Odpojení tasku (tlačítko "Odpojit") | Blok se vrátí na vlastní `title` a `priority`; `task_id` = null | Task se vrátí do stavu `inbox` |
+| Smazání bloku | Blok se odstraní | Task se vrátí do stavu `inbox` |
+
+Blok vytvořený přetažením tasku z inboxu na prázdné místo v kalendáři si jako vlastní `title` zachová název tasku v okamžiku vzniku — tento title zůstane i po případném odpojení tasku.
 
 Přepojení bloku na jiný úkol je možné přes task search dropdown v popovert nebo přetažením tasku z inboxu na existující blok v kalendáři.
 
