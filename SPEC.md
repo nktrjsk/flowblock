@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.26.0 (2026-03-19)
+> **Verze dokumentu:** 0.27.0 (2026-03-19)
 > **Status:** Návrh MVP
 
 ---
@@ -401,6 +401,17 @@ proto nezabírá místo v bottom tab baru.
   - Tlačítko "Uložit" — uloží URL do localStorage, aplikace se po 800ms restartuje
   - Varování: "Změna relay URL odpojí synchronizaci s předchozím serverem."
 
+#### highlightSync — zvýrazněné otevření
+
+SettingsModal podporuje prop `highlightSync?: boolean`. Pokud je nastaven na `true`
+(typicky voláno z WelcomeCard přes odkaz "zapnout synchronizaci"):
+- Modal se otevře
+- Automaticky se odscrolluje na sekci *Pokročilé*
+- Sekce *Pokročilé* se na 2 sekundy vizuálně zvýrazní (ring efekt)
+
+Efekt slouží jako kontextový ukazatel pro uživatele, který přichází z WelcomeCard
+a neví, kde relay nastavení hledat.
+
 *Kalendáře*
 - Seznam přidaných kalendářů (název, typ, barva, čas posledního syncu)
 - Na každém řádku kalendáře (hover akce):
@@ -789,6 +800,138 @@ Pokud text začíná prefixem `//`, vstup se přepne do režimu poznámky:
 
 MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — funkce pro prohlížení a zpracování poznámek je budoucí feature. Datový model (`converted_task_id`, status `reviewed`) je připraven pro pozdější Review mode (viz sekce 14).
 
+### 5.15 WelcomeCard — onboarding prázdného inboxu
+
+#### Podmínky zobrazení
+
+WelcomeCard se zobrazí v inboxovém sidebaru, pokud jsou splněny **obě** podmínky:
+1. Inbox je prázdný (žádné tasky ani poznámky)
+2. Uživatel kartu dosud nedismissnul (`flowblock_welcome_dismissed` v localStorage není nastaveno)
+
+Jakmile uživatel přidá první úkol nebo poznámku (inbox přestane být prázdný), karta zmizí automaticky — podmínka prázdnosti přestane být splněna.
+
+#### Vizuální styl
+
+"Paper-note" styl — mírně odlišné pozadí od okolního inboxu (`rgba(26,26,46,0.02)`), subtle box-shadow. Zapadá do "warm paper-industrial" estetiky a nepůsobí jako systémová notifikace.
+
+#### Obsah
+
+```
+┌──────────────────────────────────┐ ×
+│  Sem patří vše,                  │
+│  co ti teď leží v hlavě.         │
+│  Napiš úkol, přetáhni ho        │
+│  do kalendáře a máš plán.        │
+│                                  │
+│  [ Název prvního úkolu…  Enter→] │
+│                                  │
+│  nebo načíst ukázkový den        │
+│ ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │
+│  Data zůstávají v tvém prohlížeči│
+│  zapnout synchronizaci ? Evolu   │
+│                          Přehled │
+└──────────────────────────────────┘
+```
+
+- **Nadpis:** "Sem patří vše, co ti teď leží v hlavě." (Instrument Serif italic)
+- **Podtitulek:** "Napiš úkol, přetáhni ho do kalendáře a máš plán. Tak jednoduché to je."
+- **Inline input** s `autoFocus` — uživatel může začít psát okamžitě bez kliknutí
+  - Placeholder: "Název prvního úkolu…" (nebo "Rychlá poznámka…" pokud text začíná `//`)
+  - Enter uloží záznam (přes `useQuickAdd`, stejná logika jako `AddTaskInput`) a automaticky dismissne kartu
+  - Escape dismissne kartu bez uložení
+  - Hint "Enter →" zobrazen jako ztlumený text uvnitř inputu vpravo
+- **Sekundární CTA:** "nebo **načíst ukázkový den**" — vloží 5 demo tasků + 3 timeblocks s dnešními časy; poté kartu dismissne
+- **Dělicí čára** (dashed)
+- **Footer:**
+  - Privacy řádek: "Data zůstávají v tvém prohlížeči, případně lze zapnout synchronizaci pomocí Evolu"
+  - "zapnout synchronizaci" — odkaz, který otevře SettingsModal s `highlightSync=true` (scrolluje a highlightuje sekci Pokročilé)
+  - `?` tooltip vedle "Evolu" — vysvětluje co Evolu je (open-source local-first DB, volitelná E2E synchronizace, žádný vendor lock-in)
+  - "Přehled funkcí" — odkaz vpravo; otevře HelpModal
+
+#### Dismiss
+
+- Tlačítko `×` v pravém horním rohu — dismissne kartu, uloží příznak do localStorage; karta se nevrátí
+- Po dismissu (jakýmkoliv způsobem) se `flowblock_welcome_dismissed = "1"` zapíše do localStorage
+
+#### Demo data (načíst ukázkový den)
+
+Vloží ukázkový obsah s dnešními časy pro ilustraci workflow:
+
+**Tasky:**
+
+| Název | Priorita | Energie |
+|---|---|---|
+| Odpovědět Martinovi na nabídku | high | draining |
+| Koupit dárek pro Lucii | medium | normal |
+| Přečíst článek o produktivitě | low | lite |
+| Zavolat zubařovi | none | normal |
+| Nákup — mléko, chléb, káva | none | lite |
+
+**TimeBlocks (dnešní datum, relativní časy):**
+
+| Název | Začátek | Konec | Priorita |
+|---|---|---|---|
+| Odpovědět Martinovi na nabídku | 09:00 | 10:00 | high |
+| Administrativa | 10:30 | 11:00 | medium |
+| Přečíst článek o produktivitě | 14:00 | 14:30 | low |
+
+### 5.16 HelpModal — přehled funkcí a zkratek
+
+#### Spouštěče
+
+HelpModal lze otevřít ze dvou míst:
+1. **Header** — ikona `?` v hlavní liště (vedle ikony ⚙ Nastavení)
+2. **WelcomeCard** — odkaz "Přehled funkcí" v footeru karty (viz sekce 5.15)
+
+#### Forma
+
+Modal (`z-index: 90`) s poloprůhledným překrytím pozadí (`z-index: 80`). Šířka max. `28rem`, max. výška `80vh` s vnitřním scrollem. Zavírá se kliknutím na překrytí nebo tlačítkem `×`.
+
+#### Obsah — sekce
+
+Sekce jsou seřazeny podle frekvence použití:
+
+**Inbox**
+
+| Akce | Klávesa / gesta |
+|---|---|
+| Přidat nový úkol | Enter |
+| Přidat poznámku místo úkolu | `//` + Enter |
+| Editovat úkol inline | klik na název |
+| Nastavit prioritu úkolu | ikona vlajky |
+| Naplánovat úkol | drag do kalendáře |
+
+**Kalendář**
+
+| Akce | Klávesa / gesta |
+|---|---|
+| Vytvořit nový timeblock | double-click |
+| Naplánovat úkol na konkrétní čas | drag z inboxu |
+| Přiřadit úkol k existujícímu bloku | drag z inboxu na blok |
+| Přesunout timeblock na jiný čas nebo den | drag bloku |
+| Změnit délku bloku tažením | tažení okraje bloku |
+| Otevřít detail bloku | klik na blok |
+
+**Detail bloku**
+
+| Akce | Klávesa |
+|---|---|
+| Uložit změny | Ctrl+Enter |
+| Zavřít bez uložení | Esc |
+| Smazat blok | Del |
+| Změnit prioritu bloku | ← → |
+| Propojit / odpojit úkol | ikona odkazu |
+
+**Navigace**
+
+| Akce | Klávesa |
+|---|---|
+| Zavřít otevřený panel nebo modal | Esc |
+
+#### Footer
+
+Privacy poznámka: "Data jsou uložena lokálně v tvém prohlížeči. Sync mezi zařízeními lze zapnout v Nastavení."
+
 ---
 
 ## 6. Tech Stack
@@ -828,6 +971,9 @@ MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — fu
 - [x] Quick Notes — rychlé poznámky z inboxu prefixem `//` (viz sekce 4.6, 5.14)
 - [x] Sjednocení task/note entry přes `useQuickAdd` hook — desktop (`AddTaskInput`) i mobil (`QuickAddSheet`) funkčně identické (viz sekce 5.14)
 - [x] Mobilní inbox — `TaskItem` a `NoteItem` sdílené s desktopem; touch-always-visible akce (viz sekce 5.8)
+- [x] WelcomeCard — onboarding prázdného inboxu s inline inputem, demo daty a odkazy do HelpModal a Nastavení (viz sekce 5.15)
+- [x] HelpModal — přehled funkcí a klávesových zkratek; dostupný z Headeru i WelcomeCard (viz sekce 5.16)
+- [x] SettingsModal `highlightSync` — kontextové zvýraznění sekce Pokročilé při příchodu z WelcomeCard (viz sekce 5.9)
 - [ ] Sekce Plánování v Nastavení — přestávka mezi bloky (transition buffer zóny) dočasně odstraněna, bude reimplementována; zkratkové hinty funkční (viz sekce 5.6, 5.9)
 - [x] Vytvoření TimeBlocku double-click + drag v kalendáři (bez tažení = 60min blok, s tažením = custom délka; viz sekce 5.6)
 - [x] Vizuální rozlišení prázdného vs. linked bloku — dashed/solid border, opacita, `ListTodo` ikona (viz sekce 5.5)
