@@ -9,6 +9,7 @@ import {
   DRAG_DATA_KEY,
   TRANSITION_BUFFER_KEY,
   DragPayload,
+  isDragPayload,
 } from "../../constants";
 import TimeBlockComponent from "./TimeBlock";
 import ExternalEvent from "./ExternalEvent";
@@ -161,6 +162,83 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
     }
   }
 
+  const [pendingOpenId, setPendingOpenId] = useState<string | null>(null);
+  const [newBlockDrag, setNewBlockDrag] = useState<{
+    dayIndex: number;
+    anchorMinutes: number;
+    currentMinutes: number;
+  } | null>(null);
+  const lastClickRef = useRef<{ time: number; dayIndex: number; minutes: number } | null>(null);
+
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (!newBlockDrag) return;
+      const colEl = gridRef.current?.querySelector(`[data-day="${newBlockDrag.dayIndex}"]`) as HTMLElement | null;
+      if (!colEl) return;
+      const rect = colEl.getBoundingClientRect();
+      const minutes = clamp(snapMinutes(((e.clientY - rect.top) / HOUR_HEIGHT_PX) * 60), 0, 24 * 60 - SNAP_MINUTES);
+      setNewBlockDrag((prev) => prev ? { ...prev, currentMinutes: minutes } : null);
+    }
+
+    function onMouseUp() {
+      if (!newBlockDrag) return;
+      const drag = newBlockDrag;
+      setNewBlockDrag(null);
+
+      const startMinutes = Math.min(drag.anchorMinutes, drag.currentMinutes);
+      const rawDuration = Math.abs(drag.currentMinutes - drag.anchorMinutes);
+      const durationMinutes = rawDuration < SNAP_MINUTES ? 60 : rawDuration;
+      const endMinutes = Math.min(startMinutes + durationMinutes, 24 * 60);
+
+      const dayDate = getDayDate(weekStart, drag.dayIndex);
+      const result = insert("timeBlock", {
+        task_id: null,
+        title: Evolu.NonEmptyString1000.orThrow("Nový blok"),
+        start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMinutes)),
+        end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMinutes)),
+        priority: null,
+      });
+      if (result.ok) {
+        setPendingOpenId(String(result.value.id));
+        setTimeout(() => setPendingOpenId(null), 500);
+      }
+    }
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newBlockDrag]);
+
+  function handleColMouseDown(e: React.MouseEvent, dayIndex: number) {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest("[data-block],[data-popover]")) return;
+    const colEl = gridRef.current?.querySelector(`[data-day="${dayIndex}"]`) as HTMLElement | null;
+    if (!colEl) return;
+    const minutes = clamp(snapMinutes(((e.clientY - colEl.getBoundingClientRect().top) / HOUR_HEIGHT_PX) * 60), 0, 24 * 60 - SNAP_MINUTES);
+
+    const now = Date.now();
+    const last = lastClickRef.current;
+    if (last && (now - last.time) < 400 && last.dayIndex === dayIndex && Math.abs(last.minutes - minutes) <= SNAP_MINUTES) {
+      lastClickRef.current = null;
+      e.preventDefault();
+      setNewBlockDrag({ dayIndex, anchorMinutes: minutes, currentMinutes: minutes });
+    } else {
+      lastClickRef.current = { time: now, dayIndex, minutes };
+    }
+  }
+
+  const newBlockGhost = newBlockDrag
+    ? {
+        dayIndex: newBlockDrag.dayIndex,
+        startMinutes: Math.min(newBlockDrag.anchorMinutes, newBlockDrag.currentMinutes),
+        durationMinutes: Math.max(SNAP_MINUTES, Math.abs(newBlockDrag.currentMinutes - newBlockDrag.anchorMinutes)),
+      }
+    : null;
+
   // Current drag payload (used during dragover to calculate ghost duration)
   const dragPayloadRef = useRef<DragPayload | null>(null);
 
@@ -224,7 +302,8 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
 
     const raw = e.dataTransfer.getData(DRAG_DATA_KEY);
     if (!raw) return;
-    const payload: DragPayload = JSON.parse(raw);
+    let payload: DragPayload;
+    try { const p = JSON.parse(raw); if (!isDragPayload(p)) return; payload = p; } catch { return; }
     const dayDate = getDayDate(weekStart, dayIndex);
 
     const colEl = getDayColumnEl(dayIndex);
@@ -276,7 +355,8 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
     const raw = e.dataTransfer.getData(DRAG_DATA_KEY);
     if (raw) {
       try {
-        dragPayloadRef.current = JSON.parse(raw);
+        const p = JSON.parse(raw);
+        if (isDragPayload(p)) dragPayloadRef.current = p;
       } catch {
         // noop
       }
@@ -461,13 +541,16 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
             const isTodayCol = dayIndex === getTodayIndex(weekStart);
             const nowTop = (nowMinutes / 60) * HOUR_HEIGHT_PX;
 
+            const isNewBlockDay = newBlockGhost?.dayIndex === dayIndex;
+
             return (
               <div
                 key={dayIndex}
                 data-day={dayIndex}
-                className="flex-1 relative border-r border-ink/10 last:border-r-0"
+                className={`flex-1 relative border-r border-ink/10 last:border-r-0 ${newBlockDrag ? "cursor-crosshair select-none" : ""}`}
                 onDragOver={(e) => handleDragOver(e, dayIndex)}
                 onDrop={(e) => handleDrop(e, dayIndex)}
+                onMouseDown={(e) => handleColMouseDown(e, dayIndex)}
               >
                 {/* Hour grid lines — strongest */}
                 {HOURS.map((h) => (
@@ -556,8 +639,34 @@ export default function WeekCalendar({ weekStart }: WeekCalendarProps) {
                     durationMinutes={block.durationMinutes}
                     dayDate={block.dayDate}
                     onResizeChange={handleResizeChange}
+                    autoOpen={pendingOpenId === String(block.id)}
                   />
                 ))}
+
+                {/* New block creation ghost */}
+                {isNewBlockDay && newBlockGhost && (() => {
+                  const tooltipOnLeft = dayIndex >= 5;
+                  const endMin = newBlockGhost.startMinutes + newBlockGhost.durationMinutes;
+                  const label = `${formatMinutes(newBlockGhost.startMinutes, timeFormat)}–${formatMinutes(endMin, timeFormat)}`;
+                  return (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: (newBlockGhost.startMinutes / 60) * HOUR_HEIGHT_PX,
+                        left: 2,
+                        right: 2,
+                        height: Math.max((newBlockGhost.durationMinutes / 60) * HOUR_HEIGHT_PX, 12),
+                        pointerEvents: "none",
+                        zIndex: 20,
+                      }}
+                      className={`border-2 border-dashed border-ink/50 rounded-md bg-ink/10 flex items-start ${tooltipOnLeft ? "justify-start" : "justify-end"}`}
+                    >
+                      <span className="text-[10px] text-ink/60 bg-surface/80 rounded px-1 py-0.5 m-0.5 leading-none whitespace-nowrap">
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Drag ghost */}
                 {isGhostDay && ghost && (() => {

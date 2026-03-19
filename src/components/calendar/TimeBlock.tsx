@@ -37,6 +37,7 @@ interface TimeBlockComponentProps extends TimeBlockProps {
   dayDate: Date;
   taskTitle?: string | null;
   onResizeChange?: (id: string, liveStart: number | null, liveEnd: number | null) => void;
+  autoOpen?: boolean;
 }
 
 export default function TimeBlock({
@@ -49,6 +50,7 @@ export default function TimeBlock({
   dayDate,
   taskTitle,
   onResizeChange,
+  autoOpen,
 }: TimeBlockComponentProps) {
   const [liveResize, setLiveResize] = useState<{
     startMinutes: number;
@@ -74,6 +76,14 @@ export default function TimeBlock({
   useEffect(() => {
     setLiveResize(null);
   }, [startMinutes, durationMinutes]);
+
+  useEffect(() => {
+    if (autoOpen && blockRef.current) {
+      const rect = blockRef.current.getBoundingClientRect();
+      setAnchorPos({ x: rect.left + rect.width / 2, y: rect.top });
+      setPopoverOpen(true);
+    }
+  }, [autoOpen]);
 
   const priorityColors = usePriorityColors();
   const prio = (priority ?? "none") as Priority;
@@ -200,6 +210,7 @@ export default function TimeBlock({
           color: colors.text,
           zIndex: 10,
         }}
+        data-block="true"
         className="rounded-sm cursor-pointer select-none group overflow-visible"
       >
         {/* Top resize handle */}

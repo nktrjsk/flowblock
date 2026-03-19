@@ -33,3 +33,11 @@ export const SHORTCUT_HINTS_KEY = "flowblock_shortcut_hints"; // "true" | "false
 export type DragPayload =
   | { type: "task"; taskId: string }
   | { type: "timeblock"; timeBlockId: string; offsetMinutes: number; taskId?: string };
+
+export function isDragPayload(x: unknown): x is DragPayload {
+  if (typeof x !== "object" || x === null) return false;
+  const p = x as Record<string, unknown>;
+  if (p.type === "task") return typeof p.taskId === "string";
+  if (p.type === "timeblock") return typeof p.timeBlockId === "string" && typeof p.offsetMinutes === "number";
+  return false;
+}

@@ -147,12 +147,14 @@ export default function TimeBlockPopover({
 
   return (
     <>
-      <div className="fixed inset-0 z-[90]" onClick={onClose} />
+      <div data-popover="true" className="fixed inset-0 z-[90]" onClick={onClose} onMouseDown={(e) => e.stopPropagation()} />
 
       <div
+        data-popover="true"
         style={{ position: "fixed", left, top, width: POPOVER_WIDTH, zIndex: 100 }}
         className="bg-surface rounded-xl shadow-xl border border-ink/10 p-4 flex flex-col gap-3"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Close — outside tab order, use Escape */}
         <button
@@ -166,6 +168,7 @@ export default function TimeBlockPopover({
         {/* Title */}
         <input
           autoFocus
+          onFocus={(e) => e.target.select()}
           value={titleValue}
           onChange={(e) => setTitleValue(e.target.value)}
           onKeyDown={(e) => {

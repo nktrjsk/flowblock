@@ -5,8 +5,9 @@ import App from "./App";
 
 // After Evolu owner restore, it navigates to "/" — redirect back to the app's base path.
 const restoreRedirect = sessionStorage.getItem("evolu-restore-redirect");
-if (restoreRedirect && window.location.pathname !== restoreRedirect) {
-  sessionStorage.removeItem("evolu-restore-redirect");
+sessionStorage.removeItem("evolu-restore-redirect");
+const isSafeRelativePath = typeof restoreRedirect === "string" && /^\/[^/\\]/.test(restoreRedirect);
+if (isSafeRelativePath && window.location.pathname !== restoreRedirect) {
   window.location.replace(restoreRedirect);
 }
 
