@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import SettingsModal from "../settings/SettingsModal";
+import HelpModal from "../help/HelpModal";
 
 interface HeaderProps {
   viewMode: "dashboard" | "week";
@@ -36,6 +37,7 @@ export default function Header({
   syncErrors,
 }: HeaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   return (
     <header className="h-14 flex items-center px-4 gap-3 border-b border-ink/10 bg-paper shrink-0">
@@ -106,6 +108,15 @@ export default function Header({
           )}
         </div>
 
+        {/* Help button */}
+        <button
+          onClick={() => setHelpOpen(true)}
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-ink/20 hover:bg-ink/5 transition-colors text-sm font-medium text-ink/60"
+          title="Nápověda"
+        >
+          ?
+        </button>
+
         {/* Settings button */}
         <button
           onClick={() => setSettingsOpen(true)}
@@ -115,6 +126,8 @@ export default function Header({
           ⚙
         </button>
       </div>
+
+      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
 
       {settingsOpen && (
         <SettingsModal
