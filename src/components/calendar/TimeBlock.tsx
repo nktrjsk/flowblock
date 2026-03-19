@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { flushSync } from "react-dom";
-import { GripVertical } from "lucide-react";
+import { GripVertical, ListTodo } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
 import {
@@ -57,6 +57,7 @@ export default function TimeBlock({
     endMinutes: number;
   } | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [anchorPos, setAnchorPos] = useState<{ x: number; y: number } | null>(null);
   const { update } = useEvolu();
   const { timeFormat } = useTimeFormat();
@@ -205,13 +206,25 @@ export default function TimeBlock({
           left: 2,
           right: 2,
           height,
-          backgroundColor: colors.bg,
-          borderLeft: `3px solid ${colors.border}`,
-          color: colors.text,
           zIndex: 10,
+          ...(taskId
+            ? {
+                backgroundColor: colors.bg,
+                borderLeft: `3px solid ${colors.border}`,
+                color: colors.text,
+              }
+            : {
+                backgroundColor: colors.bg + "99",
+                border: `1.5px dashed ${colors.border}`,
+                color: colors.text,
+              }),
         }}
         data-block="true"
-        className="rounded-sm cursor-pointer select-none group overflow-visible"
+        data-block-id={String(id)}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false); }}
+        onDrop={() => setIsDragOver(false)}
+        className={`rounded-sm cursor-pointer select-none group overflow-visible transition-[box-shadow] ${isDragOver ? "ring-2 ring-ink/40" : ""}`}
       >
         {/* Top resize handle */}
         <div
@@ -224,10 +237,13 @@ export default function TimeBlock({
 
         {/* Content */}
         <div className="h-full flex flex-col justify-start pt-0.5 px-1.5 overflow-hidden">
-          <span className="text-[10px] opacity-60 leading-none">
-            {formatMinutes(displayStart, timeFormat)}–{formatMinutes(endMinutes, timeFormat)}
-          </span>
-          <span className="text-xs font-medium leading-tight mt-0.5 truncate">
+          <div className="flex items-center gap-0.5">
+            <span className="text-[10px] opacity-60 leading-none flex-1 truncate">
+              {formatMinutes(displayStart, timeFormat)}–{formatMinutes(endMinutes, timeFormat)}
+            </span>
+            {taskId && <ListTodo size={18} className="opacity-60 shrink-0" />}
+          </div>
+          <span className={`text-xs leading-tight mt-0.5 truncate ${taskId ? "font-medium" : "font-normal opacity-70"}`}>
             {title}
           </span>
         </div>
