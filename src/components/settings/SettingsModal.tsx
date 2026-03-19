@@ -7,7 +7,7 @@ import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/ev
 import { CalendarId } from "../../db/schema";
 import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
-import { NOTIFICATIONS_ENABLED_KEY, TRANSITION_BUFFER_KEY, SHORTCUT_HINTS_KEY } from "../../constants";
+import { NOTIFICATIONS_ENABLED_KEY, SHORTCUT_HINTS_KEY } from "../../constants";
 import { useToast } from "../ui/Toast";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -146,15 +146,6 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
     }
     setRelaySaved(true);
     setTimeout(() => window.location.reload(), 800);
-  }
-
-  const [transitionBuffer, setTransitionBufferState] = useState<"0" | "5" | "10" | "15">(
-    () => (localStorage.getItem(TRANSITION_BUFFER_KEY) as "0" | "5" | "10" | "15") || "0",
-  );
-
-  function handleBufferChange(val: "0" | "5" | "10" | "15") {
-    setTransitionBufferState(val);
-    localStorage.setItem(TRANSITION_BUFFER_KEY, val);
   }
 
   const [shortcutHints, setShortcutHints] = useState(
@@ -663,27 +654,6 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
         <section className="mt-6">
           <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Plánování</h3>
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-ink/80">Přestávka mezi bloky</p>
-              <p className="text-xs text-ink/40 mt-0.5">Šrafovaná zóna za každým time-blokem, blokuje slot.</p>
-            </div>
-            <div className="flex rounded-lg border border-ink/15 overflow-hidden shrink-0">
-              {(["0", "5", "10", "15"] as const).map((val) => (
-                <button
-                  key={val}
-                  onClick={() => handleBufferChange(val)}
-                  className={`px-2.5 py-1.5 text-xs transition-colors ${
-                    transitionBuffer === val
-                      ? "bg-ink text-paper"
-                      : "bg-transparent text-ink/50 hover:bg-ink/5"
-                  }`}
-                >
-                  {val === "0" ? "Vypnuto" : `${val} min`}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-4">
             <div>
               <p className="text-sm text-ink/80">Zkratkové hinty</p>
               <p className="text-xs text-ink/40 mt-0.5">Zobrazit klávesové zkratky u tlačítek (např. Del, Ctrl+↵).</p>
