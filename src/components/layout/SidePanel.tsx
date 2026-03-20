@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu, useEvolu } from "../../db/evolu";
 import { TaskId, TimeBlockId } from "../../db/schema";
 import { DRAG_DATA_KEY, DragPayload } from "../../constants";
@@ -21,6 +21,7 @@ const inboxTasksQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("createdAt", "asc"),
 );
+evolu.loadQuery(inboxTasksQuery);
 
 const doneTasksQuery = evolu.createQuery((db) =>
   db
@@ -30,6 +31,7 @@ const doneTasksQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("updatedAt", "desc"),
 );
+evolu.loadQuery(doneTasksQuery);
 
 const notesQuery = evolu.createQuery((db) =>
   db
@@ -38,6 +40,7 @@ const notesQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("createdAt", "asc"),
 );
+evolu.loadQuery(notesQuery);
 
 export default function SidePanel() {
   const [doneOpen, setDoneOpen] = useState(false);
@@ -49,9 +52,9 @@ export default function SidePanel() {
   const [settingsHighlightSync, setSettingsHighlightSync] = useState(false);
   const { update } = useEvolu();
 
-  const inboxRows = useQuery(inboxTasksQuery);
-  const doneRows = useQuery(doneTasksQuery);
-  const allNoteRows = useQuery(notesQuery);
+  const inboxRows = useQuerySubscription(inboxTasksQuery);
+  const doneRows = useQuerySubscription(doneTasksQuery);
+  const allNoteRows = useQuerySubscription(notesQuery);
   const noteRows = allNoteRows.filter((r) => r.status === "new");
 
   function handleDragOver(e: React.DragEvent) {

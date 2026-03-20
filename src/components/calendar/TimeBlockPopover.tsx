@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Trash2, Link2, Link2Off } from "lucide-react";
 import { useEvolu, evolu } from "../../db/evolu";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { TimeBlockId, TaskId } from "../../db/schema";
 import { Priority, SHORTCUT_HINTS_KEY } from "../../constants";
 import * as Evolu from "@evolu/common";
@@ -16,6 +16,7 @@ const allTasksQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("title", "asc"),
 );
+evolu.loadQuery(allTasksQuery);
 
 const POPOVER_WIDTH = 272;
 const PRIORITIES: Priority[] = ["none", "low", "medium", "high"];
@@ -55,7 +56,7 @@ export default function TimeBlockPopover({
   const { update } = useEvolu();
   const { timeFormat } = useTimeFormat();
   const priorityColors = usePriorityColors();
-  const taskRows = useQuery(allTasksQuery);
+  const taskRows = useQuerySubscription(allTasksQuery);
   const [titleValue, setTitleValue] = useState(title);
   const [taskSearch, setTaskSearch] = useState("");
   const [showTaskSearch, setShowTaskSearch] = useState(false);

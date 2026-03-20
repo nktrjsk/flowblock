@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, Fragment } from "react";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu, useEvolu } from "../../db/evolu";
 import { TaskId, TimeBlockId } from "../../db/schema";
 import {
@@ -21,7 +21,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 const TIME_COLUMN_WIDTH = 48; // px
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-// Queries defined outside component — singleton pattern
+// Queries defined outside component — singleton pattern, pre-loaded to avoid Suspense on navigation/mutations
 const timeBlocksQuery = evolu.createQuery((db) =>
   db
     .selectFrom("timeBlock")
@@ -29,6 +29,7 @@ const timeBlocksQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("start", "asc"),
 );
+evolu.loadQuery(timeBlocksQuery);
 
 const tasksQuery = evolu.createQuery((db) =>
   db
@@ -36,6 +37,7 @@ const tasksQuery = evolu.createQuery((db) =>
     .select(["id", "title", "priority"])
     .where("isDeleted", "is", null),
 );
+evolu.loadQuery(tasksQuery);
 
 const externalEventsQuery = evolu.createQuery((db) =>
   db
@@ -44,6 +46,7 @@ const externalEventsQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("start", "asc"),
 );
+evolu.loadQuery(externalEventsQuery);
 
 function isoToMinutes(iso: string, referenceDate: Date): number {
   const d = new Date(iso);
@@ -107,9 +110,9 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const timeBlockRows = useQuery(timeBlocksQuery);
-  const taskRows = useQuery(tasksQuery);
-  const externalEventRows = useQuery(externalEventsQuery);
+  const timeBlockRows = useQuerySubscription(timeBlocksQuery);
+  const taskRows = useQuerySubscription(tasksQuery);
+  const externalEventRows = useQuerySubscription(externalEventsQuery);
   const taskMap = new Map(taskRows.map((t) => [t.id, t]));
 
   const [ghost, setGhost] = useState<{

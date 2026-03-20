@@ -1,5 +1,5 @@
-import { Suspense, useState, useEffect, useRef } from "react";
-import { EvoluProvider } from "@evolu/react";
+import { useState, useEffect, useRef } from "react";
+import { EvoluProvider, useEvoluError } from "@evolu/react";
 import { evolu } from "./db/evolu";
 import Header from "./components/layout/Header";
 import SidePanel from "./components/layout/SidePanel";
@@ -17,7 +17,7 @@ import { useBlockTransitionNotifications } from "./hooks/useBlockTransitionNotif
 function getMondayOfWeek(date: Date): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  const day = d.getDay(); // 0=Sun
+  const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   return d;
@@ -28,13 +28,13 @@ function AppContent() {
   const [viewMode, setViewMode] = useState<"dashboard" | "week">("dashboard");
   const [weekStart, setWeekStart] = useState(() => getMondayOfWeek(new Date()));
   const { show } = useToast();
+  const evoluError = useEvoluError();
 
   const { syncing, errors, syncNow } = useCalendarSync();
   useDayRollover();
   useBlockTransitionNotifications();
   const prevErrorsRef = useRef<Record<string, string>>({});
 
-  // Show error toasts when background polling errors change
   useEffect(() => {
     const prev = prevErrorsRef.current;
     for (const [calId, msg] of Object.entries(errors)) {
@@ -45,6 +45,20 @@ function AppContent() {
     }
     prevErrorsRef.current = errors;
   }, [errors, show]);
+
+  if (evoluError) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-paper text-ink/60 text-sm">
+        <div className="max-w-sm text-center flex flex-col gap-3">
+          <p className="font-medium text-ink/80">FlowBlock se nepodařilo načíst</p>
+          <p className="text-xs text-ink/50 leading-relaxed">
+            Anonymní okno může blokovat přístup k lokálnímu úložišti (OPFS/SQLite).
+            Zkuste otevřít aplikaci v normálním okně prohlížeče.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const hasSyncErrors = Object.keys(errors).length > 0;
 
@@ -91,44 +105,13 @@ function AppContent() {
   );
 }
 
-function LoadingFallback() {
-  const [timedOut, setTimedOut] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setTimedOut(true), 5000);
-    return () => clearTimeout(t);
-  }, []);
-
-  if (timedOut) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-paper text-ink/60 text-sm">
-        <div className="max-w-sm text-center flex flex-col gap-3">
-          <p className="font-medium text-ink/80">FlowBlock se nepodařilo načíst</p>
-          <p className="text-xs text-ink/50 leading-relaxed">
-            Anonymní okno může blokovat přístup k lokálnímu úložišti (OPFS/SQLite).
-            Zkuste otevřít aplikaci v normálním okně prohlížeče.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-screen items-center justify-center bg-paper text-ink/40 text-sm">
-      Načítání…
-    </div>
-  );
-}
-
 export default function App() {
   return (
     <EvoluProvider value={evolu}>
       <ThemeProvider>
       <TimeFormatProvider>
       <ToastProvider>
-        <Suspense fallback={<LoadingFallback />}>
-          <AppContent />
-        </Suspense>
+        <AppContent />
       </ToastProvider>
       </TimeFormatProvider>
       </ThemeProvider>

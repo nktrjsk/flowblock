@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu } from "../db/evolu";
 import { syncCalendar } from "../services/calendarSync";
 import { CalendarId } from "../db/schema";
@@ -12,6 +12,7 @@ const calendarsQuery = evolu.createQuery((db) =>
     .select(["id", "type", "url", "username", "password"])
     .where("isDeleted", "is", null),
 );
+evolu.loadQuery(calendarsQuery);
 
 export function useCalendarSync(): {
   lastSyncAt: Date | null;
@@ -19,7 +20,7 @@ export function useCalendarSync(): {
   errors: Record<string, string>;
   syncNow: () => void;
 } {
-  const calendars = useQuery(calendarsQuery);
+  const calendars = useQuerySubscription(calendarsQuery);
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});

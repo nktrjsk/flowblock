@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu } from "../../db/evolu";
 import * as Evolu from "@evolu/common";
 import TaskItem from "../inbox/TaskItem";
@@ -13,6 +13,7 @@ const inboxQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("createdAt", "asc"),
 );
+evolu.loadQuery(inboxQuery);
 
 const doneQuery = evolu.createQuery((db) =>
   db
@@ -22,6 +23,7 @@ const doneQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("updatedAt", "desc"),
 );
+evolu.loadQuery(doneQuery);
 
 const notesQuery = evolu.createQuery((db) =>
   db
@@ -30,12 +32,13 @@ const notesQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("createdAt", "asc"),
 );
+evolu.loadQuery(notesQuery);
 
 export default function MobileInboxTab() {
   const [doneOpen, setDoneOpen] = useState(false);
-  const inboxRows = useQuery(inboxQuery);
-  const doneRows = useQuery(doneQuery);
-  const allNoteRows = useQuery(notesQuery);
+  const inboxRows = useQuerySubscription(inboxQuery);
+  const doneRows = useQuerySubscription(doneQuery);
+  const allNoteRows = useQuerySubscription(notesQuery);
   const noteRows = allNoteRows.filter((r) => r.status === "new");
 
   return (

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { RefreshCw, Pencil, X } from "lucide-react";
 import { Mnemonic } from "@evolu/common";
 import * as Evolu from "@evolu/common";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/evolu";
 import { CalendarId } from "../../db/schema";
 import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
@@ -25,6 +25,7 @@ const calendarsQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("display_name", "asc"),
 );
+evolu.loadQuery(calendarsQuery);
 
 const COLORS = ["#4f8ef7", "#e85d5d", "#4caf7a", "#e09b2f", "#9b59b6", "#1a1a2e"];
 
@@ -68,7 +69,7 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
   const shortId = ownerId ? `${ownerId.slice(0, 8)}…${ownerId.slice(-4)}` : "…";
 
   // --- Calendars section ---
-  const calendarRows = useQuery(calendarsQuery);
+  const calendarRows = useQuerySubscription(calendarsQuery);
 
   // Add form
   const [showAddForm, setShowAddForm] = useState(false);
