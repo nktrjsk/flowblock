@@ -394,8 +394,12 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
     const result = new Map<string, { col: number; totalCols: number }>();
     if (!blocks.length) return result;
 
-    // Sort by ID (stable) so column assignments don't swap when blocks' start times cross each other
-    const sorted = [...blocks].sort((a, b) => String(a.id) < String(b.id) ? -1 : 1);
+    // Sort by start time (required for correct sweepline), ID as tiebreaker for stability
+    const sorted = [...blocks].sort((a, b) =>
+      a.startMinutes !== b.startMinutes
+        ? a.startMinutes - b.startMinutes
+        : String(a.id) < String(b.id) ? -1 : 1,
+    );
     const colEnds: number[] = [];
     const blockColMap = new Map<string, number>();
 
@@ -454,8 +458,35 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
         };
       });
 
+    // During drag: compute two layouts —
+    //   layoutFull: dragged block keeps its current narrow appearance
+    //   layoutWithout: other blocks expand as if dragged block is gone
+    const draggedId = ghost && activeDrag.payload?.type === "timeblock"
+      ? String(activeDrag.payload.timeBlockId)
+      : null;
+
+    if (draggedId) {
+      const layoutFull = computeCollisionLayout(raw);
+      const layoutWithout = computeCollisionLayout(raw.filter((b) => String(b.id) !== draggedId));
+      return raw.map((b) => ({
+        ...b,
+        ...(String(b.id) === draggedId
+          ? (layoutFull.get(draggedId) ?? { col: 0, totalCols: 1 })
+          : (layoutWithout.get(String(b.id)) ?? { col: 0, totalCols: 1 })),
+      }));
+    }
+
     const layout = computeCollisionLayout(raw);
     return raw.map((b) => ({ ...b, ...(layout.get(String(b.id)) ?? { col: 0, totalCols: 1 }) }));
+  }
+
+  function getGhostLayout(dayIndex: number, startMinutes: number, durationMinutes: number, excludeId?: string): { col: number; totalCols: number } {
+    const existing = getBlocksForDay(dayIndex)
+      .filter((b) => excludeId ? String(b.id) !== excludeId : true)
+      .map((b) => ({ id: String(b.id), startMinutes: b.startMinutes, durationMinutes: b.durationMinutes }));
+    const ghostEntry = { id: "__ghost__", startMinutes, durationMinutes };
+    const layout = computeCollisionLayout([...existing, ghostEntry]);
+    return layout.get("__ghost__") ?? { col: 0, totalCols: 1 };
   }
 
   function getExternalEventsForDay(dayIndex: number) {
@@ -608,12 +639,14 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
                 {isNewBlockDay && newBlockGhost && (() => {
                   const endMin = newBlockGhost.startMinutes + newBlockGhost.durationMinutes;
                   const label = `${formatMinutes(newBlockGhost.startMinutes, timeFormat)}–${formatMinutes(endMin, timeFormat)}`;
+                  const { col, totalCols } = getGhostLayout(dayIndex, newBlockGhost.startMinutes, newBlockGhost.durationMinutes);
                   return (
                     <div
                       style={{
                         position: "absolute",
                         top: (newBlockGhost.startMinutes / 60) * HOUR_HEIGHT_PX,
-                        left: 2, right: 2,
+                        left: `calc(${(col / totalCols) * 100}% + 2px)`,
+                        width: `calc(${(1 / totalCols) * 100}% - 4px)`,
                         height: Math.max((newBlockGhost.durationMinutes / 60) * HOUR_HEIGHT_PX, 12),
                         pointerEvents: "none",
                         zIndex: 20,
@@ -631,12 +664,15 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
                 {isGhostDay && ghost && (() => {
                   const endMin = ghost.startMinutes + ghost.durationMinutes;
                   const label = `${formatMinutes(ghost.startMinutes, timeFormat)}–${formatMinutes(endMin, timeFormat)}`;
+                  const excludeId = activeDrag.payload?.type === "timeblock" ? activeDrag.payload.timeBlockId : undefined;
+                  const { col, totalCols } = getGhostLayout(dayIndex, ghost.startMinutes, ghost.durationMinutes, excludeId);
                   return (
                     <div
                       style={{
                         position: "absolute",
                         top: (ghost.startMinutes / 60) * HOUR_HEIGHT_PX,
-                        left: 2, right: 2,
+                        left: `calc(${(col / totalCols) * 100}% + 2px)`,
+                        width: `calc(${(1 / totalCols) * 100}% - 4px)`,
                         height: Math.max((ghost.durationMinutes / 60) * HOUR_HEIGHT_PX, 12),
                         pointerEvents: "none",
                         zIndex: 20,
