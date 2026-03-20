@@ -7,7 +7,7 @@ import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/ev
 import { CalendarId } from "../../db/schema";
 import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
-import { NOTIFICATIONS_ENABLED_KEY, SHORTCUT_HINTS_KEY } from "../../constants";
+import { NOTIFICATIONS_ENABLED_KEY, SHORTCUT_HINTS_KEY, SYNC_ENABLED_KEY } from "../../constants";
 import { useToast } from "../ui/Toast";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -98,17 +98,17 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
   const [calErrors, setCalErrors] = useState<Record<string, string>>({});
   const mergedErrors: Record<string, string> = { ...syncErrors, ...calErrors };
 
-  // Advanced
-  const relaySectionRef = useRef<HTMLElement>(null);
-  const [relayHighlighted, setRelayHighlighted] = useState(false);
+  // Sync section highlight
+  const syncSectionRef = useRef<HTMLElement>(null);
+  const [syncHighlighted, setSyncHighlighted] = useState(false);
 
   useEffect(() => {
     if (!highlightSync) return;
-    const el = relaySectionRef.current;
+    const el = syncSectionRef.current;
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
-    setRelayHighlighted(true);
-    const t = setTimeout(() => setRelayHighlighted(false), 2000);
+    setSyncHighlighted(true);
+    const t = setTimeout(() => setSyncHighlighted(false), 2000);
     return () => clearTimeout(t);
   }, [highlightSync]);
 
@@ -190,6 +190,22 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
     () => ("Notification" in window ? Notification.permission : "unsupported"),
   );
+
+  // Sync
+  const [syncEnabled, setSyncEnabled] = useState(
+    () => localStorage.getItem(SYNC_ENABLED_KEY) === "true",
+  );
+
+  function handleSyncToggle() {
+    const next = !syncEnabled;
+    setSyncEnabled(next);
+    if (next) {
+      localStorage.setItem(SYNC_ENABLED_KEY, "true");
+    } else {
+      localStorage.removeItem(SYNC_ENABLED_KEY);
+    }
+    setTimeout(() => window.location.reload(), 300);
+  }
 
   async function handleNotifToggle() {
     if (notificationsEnabled) {
@@ -715,14 +731,32 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
           )}
         </section>
 
+        {/* === Sync section === */}
+        <section ref={syncSectionRef} className={`mt-6 rounded-lg transition-all duration-300 ${syncHighlighted ? "ring-2 ring-ink/30 bg-ink/3 px-3 py-2 -mx-3" : ""}`}>
+          <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Synchronizace</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-ink/80">Povolit sync</p>
+              <p className="text-xs text-ink/40 mt-0.5 leading-relaxed">
+                Synchronizace mezi zařízeními přes Evolu relay — open-source, E2E šifrovaný server. Výchozí relay je zdarma. Změna vyžaduje restart.
+              </p>
+            </div>
+            <button
+              onClick={handleSyncToggle}
+              className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${syncEnabled ? "bg-ink" : "bg-ink/20"}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 rounded-full bg-surface shadow transition-all ${syncEnabled ? "left-5" : "left-1"}`} />
+            </button>
+          </div>
+        </section>
+
         {/* === Advanced section === */}
-        <section ref={relaySectionRef} className={`mt-6 rounded-lg transition-all duration-300 ${relayHighlighted ? "ring-2 ring-ink/30 bg-ink/3 px-3 py-2 -mx-3" : ""}`}>
+        <section className="mt-6">
           <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Pokročilé</h3>
 
           {/* Relay URL */}
           <div className="flex items-center justify-between mb-1">
             <label className="text-sm text-ink/70">Evolu relay URL</label>
-            {/* Relay connection badge */}
             {relayStatus === "checking" && (
               <span className="text-xs text-ink/40 flex items-center gap-1">
                 <RefreshCw size={10} className="animate-spin" /> Kontroluji…
