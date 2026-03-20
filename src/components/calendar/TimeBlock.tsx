@@ -122,6 +122,10 @@ export default function TimeBlock({
     e.dataTransfer.effectAllowed = "move";
     // Store in module variable — dataTransfer.getData() is blocked in dragover by browsers
     activeDrag.payload = payload;
+    // Suppress native drag image — calendar ghost handles visual feedback
+    const canvas = document.createElement("canvas");
+    canvas.width = 1; canvas.height = 1;
+    e.dataTransfer.setDragImage(canvas, 0, 0);
   }
 
   function handleDragEnd() {

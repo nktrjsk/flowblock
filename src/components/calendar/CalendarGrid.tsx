@@ -10,6 +10,7 @@ import {
   DragPayload,
   isDragPayload,
   activeDrag,
+  Priority,
 } from "../../constants";
 import TimeBlockComponent from "./TimeBlock";
 import ExternalEvent from "./ExternalEvent";
@@ -17,6 +18,7 @@ import DayCapacityBars from "./DayCapacityBars";
 import * as Evolu from "@evolu/common";
 import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { usePriorityColors } from "../../hooks/usePriorityColors";
 
 const TIME_COLUMN_WIDTH = 48; // px
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -114,6 +116,7 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
   const taskRows = useQuerySubscription(tasksQuery);
   const externalEventRows = useQuerySubscription(externalEventsQuery);
   const taskMap = new Map(taskRows.map((t) => [t.id, t]));
+  const priorityColors = usePriorityColors();
 
   // Optimistic move state — holds the new position until Evolu subscription catches up
   const [pendingMoves, setPendingMoves] = useState<Map<string, {
@@ -666,6 +669,28 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
                   const label = `${formatMinutes(ghost.startMinutes, timeFormat)}–${formatMinutes(endMin, timeFormat)}`;
                   const excludeId = activeDrag.payload?.type === "timeblock" ? activeDrag.payload.timeBlockId : undefined;
                   const { col, totalCols } = getGhostLayout(dayIndex, ghost.startMinutes, ghost.durationMinutes, excludeId);
+
+                  // Resolve title and priority from dragged payload
+                  let ghostTitle: string | null = null;
+                  let ghostPriority: string | null = null;
+                  if (activeDrag.payload?.type === "timeblock") {
+                    const tbId = activeDrag.payload.timeBlockId;
+                    const block = timeBlockRows.find((b) => String(b.id) === String(tbId));
+                    if (block) {
+                      const linkedTask = block.task_id ? taskMap.get(block.task_id) : null;
+                      ghostTitle = linkedTask?.title ?? block.title ?? null;
+                      ghostPriority = block.priority ?? null;
+                    }
+                  } else if (activeDrag.payload?.type === "task") {
+                    const task = taskMap.get(activeDrag.payload.taskId as TaskId);
+                    if (task) {
+                      ghostTitle = task.title ?? null;
+                      ghostPriority = task.priority ?? null;
+                    }
+                  }
+                  const prio = (ghostPriority ?? "none") as Priority;
+                  const colors = priorityColors[prio] ?? priorityColors.none;
+
                   return (
                     <div
                       style={{
@@ -676,12 +701,20 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
                         height: Math.max((ghost.durationMinutes / 60) * HOUR_HEIGHT_PX, 12),
                         pointerEvents: "none",
                         zIndex: 20,
+                        borderLeft: `3px solid ${colors.border}`,
                       }}
-                      className={`border-2 border-dashed border-ink/40 rounded-md bg-ink/5 flex items-start ${tooltipOnLeft ? "justify-start" : "justify-end"}`}
+                      className="absolute rounded-sm border border-dashed border-ink/30 bg-ink/5 overflow-hidden"
                     >
-                      <span className="text-[10px] text-ink/50 bg-surface/80 rounded px-1 py-0.5 m-0.5 leading-none whitespace-nowrap">
-                        {label}
-                      </span>
+                      <div className="h-full flex flex-col justify-start pt-0.5 px-1.5 overflow-hidden">
+                        <span className="text-[10px] opacity-50 leading-none truncate">
+                          {label}
+                        </span>
+                        {ghostTitle && (
+                          <span className="text-xs leading-tight mt-0.5 truncate opacity-60">
+                            {ghostTitle}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
