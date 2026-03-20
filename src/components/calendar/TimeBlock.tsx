@@ -37,6 +37,8 @@ type ResizeEdge = "top" | "bottom";
 interface TimeBlockComponentProps extends TimeBlockProps {
   dayDate: Date;
   taskTitle?: string | null;
+  col?: number;
+  totalCols?: number;
   onResizeChange?: (id: string, liveStart: number | null, liveEnd: number | null) => void;
   autoOpen?: boolean;
 }
@@ -50,6 +52,8 @@ export default function TimeBlock({
   durationMinutes,
   dayDate,
   taskTitle,
+  col = 0,
+  totalCols = 1,
   onResizeChange,
   autoOpen,
 }: TimeBlockComponentProps) {
@@ -206,8 +210,8 @@ export default function TimeBlock({
         style={{
           position: "absolute",
           top,
-          left: 2,
-          right: 2,
+          left: `calc(${(col / totalCols) * 100}% + 2px)`,
+          width: `calc(${(1 / totalCols) * 100}% - 4px)`,
           height,
           zIndex: 10,
           ...(taskId

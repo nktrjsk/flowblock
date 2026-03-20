@@ -115,6 +115,30 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
   const externalEventRows = useQuerySubscription(externalEventsQuery);
   const taskMap = new Map(taskRows.map((t) => [t.id, t]));
 
+  // Optimistic move state — holds the new position until Evolu subscription catches up
+  const [pendingMoves, setPendingMoves] = useState<Map<string, {
+    dayIndex: number;
+    startMinutes: number;
+    durationMinutes: number;
+    startIso: string;
+  }>>(new Map());
+
+  useEffect(() => {
+    if (pendingMoves.size === 0) return;
+    setPendingMoves((prev) => {
+      const next = new Map(prev);
+      let changed = false;
+      for (const [id, pending] of prev) {
+        const block = timeBlockRows.find((b) => String(b.id) === id);
+        if (block && block.start === pending.startIso) {
+          next.delete(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [timeBlockRows]);
+
   const [ghost, setGhost] = useState<{
     dayIndex: number;
     startMinutes: number;
@@ -310,10 +334,18 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
       const blockDurationMinutes = (new Date(block.end).getTime() - new Date(block.start).getTime()) / (1000 * 60);
       const newStartMinutes = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
       const newEndMinutes = clamp(newStartMinutes + blockDurationMinutes, SNAP_MINUTES, 24 * 60);
+      const newStartIso = minutesToIso(dayDate, newStartMinutes);
+
+      setPendingMoves((prev) => new Map(prev).set(String(payload.timeBlockId), {
+        dayIndex,
+        startMinutes: newStartMinutes,
+        durationMinutes: newEndMinutes - newStartMinutes,
+        startIso: newStartIso,
+      }));
 
       update("timeBlock", {
         id: payload.timeBlockId as unknown as TimeBlockId,
-        start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, newStartMinutes)),
+        start: Evolu.NonEmptyString100.orThrow(newStartIso),
         end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, newEndMinutes)),
       });
     }
@@ -358,6 +390,39 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
     return Math.max(0, planned);
   }
 
+  function computeCollisionLayout(blocks: Array<{ id: unknown; startMinutes: number; durationMinutes: number }>): Map<string, { col: number; totalCols: number }> {
+    const result = new Map<string, { col: number; totalCols: number }>();
+    if (!blocks.length) return result;
+
+    // Sort by ID (stable) so column assignments don't swap when blocks' start times cross each other
+    const sorted = [...blocks].sort((a, b) => String(a.id) < String(b.id) ? -1 : 1);
+    const colEnds: number[] = [];
+    const blockColMap = new Map<string, number>();
+
+    for (const b of sorted) {
+      const end = b.startMinutes + b.durationMinutes;
+      let c = colEnds.findIndex((t) => t <= b.startMinutes);
+      if (c === -1) c = colEnds.length;
+      colEnds[c] = end;
+      blockColMap.set(String(b.id), c);
+    }
+
+    for (const b of sorted) {
+      const bEnd = b.startMinutes + b.durationMinutes;
+      let maxCol = blockColMap.get(String(b.id))!;
+      for (const other of sorted) {
+        if (String(other.id) === String(b.id)) continue;
+        const oEnd = other.startMinutes + other.durationMinutes;
+        if (b.startMinutes < oEnd && bEnd > other.startMinutes) {
+          maxCol = Math.max(maxCol, blockColMap.get(String(other.id))!);
+        }
+      }
+      result.set(String(b.id), { col: blockColMap.get(String(b.id))!, totalCols: maxCol + 1 });
+    }
+
+    return result;
+  }
+
   function getBlocksForDay(dayIndex: number) {
     const dayDate = days[dayIndex];
     const dayStart = new Date(dayDate);
@@ -365,25 +430,32 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
     const dayEnd = new Date(dayDate);
     dayEnd.setHours(23, 59, 59, 999);
 
-    return timeBlockRows
+    const raw = timeBlockRows
       .filter((b) => {
         if (!b.start) return false;
+        const pending = pendingMoves.get(String(b.id));
+        // If block has a pending move, show it only in the destination day
+        if (pending) return pending.dayIndex === dayIndex;
         const s = new Date(b.start);
         return s >= dayStart && s <= dayEnd;
       })
       .map((b) => {
         const task = b.task_id ? taskMap.get(b.task_id) : null;
-        const startMins = isoToMinutes(b.start ?? "", dayDate);
-        const endMins = isoToMinutes(b.end ?? "", dayDate);
+        const pending = pendingMoves.get(String(b.id));
+        const startMins = pending ? pending.startMinutes : isoToMinutes(b.start ?? "", dayDate);
+        const durMins = pending ? pending.durationMinutes : Math.max(SNAP_MINUTES, isoToMinutes(b.end ?? "", dayDate) - isoToMinutes(b.start ?? "", dayDate));
         return {
           ...b,
           priority: (task?.priority ?? b.priority) ?? null,
           taskTitle: task?.title ? String(task.title) : null,
           startMinutes: startMins,
-          durationMinutes: Math.max(SNAP_MINUTES, endMins - startMins),
+          durationMinutes: Math.max(SNAP_MINUTES, durMins),
           dayDate,
         };
       });
+
+    const layout = computeCollisionLayout(raw);
+    return raw.map((b) => ({ ...b, ...(layout.get(String(b.id)) ?? { col: 0, totalCols: 1 }) }));
   }
 
   function getExternalEventsForDay(dayIndex: number) {
@@ -525,6 +597,8 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
                     startMinutes={block.startMinutes}
                     durationMinutes={block.durationMinutes}
                     dayDate={block.dayDate}
+                    col={block.col}
+                    totalCols={block.totalCols}
                     onResizeChange={handleResizeChange}
                     autoOpen={pendingOpenId === String(block.id)}
                   />
