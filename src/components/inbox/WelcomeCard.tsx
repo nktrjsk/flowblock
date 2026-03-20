@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
-import { useQuickAdd, NOTE_PREFIX } from "../../hooks/useQuickAdd";
+import { useQuickAdd, TASK_PREFIX } from "../../hooks/useQuickAdd";
 import * as Evolu from "@evolu/common";
 
 export const WELCOME_DISMISSED_KEY = "flowblock_welcome_dismissed";
@@ -24,7 +24,7 @@ export default function WelcomeCard({ onDismiss, onOpenHelp, onOpenSettings }: W
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isNote = value.startsWith(NOTE_PREFIX);
+  const isTask = value.startsWith(TASK_PREFIX);
 
   function handleDismiss() {
     localStorage.setItem(WELCOME_DISMISSED_KEY, "1");
@@ -121,11 +121,11 @@ export default function WelcomeCard({ onDismiss, onOpenHelp, onOpenSettings }: W
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isNote ? "Rychlá poznámka…" : "Název prvního úkolu…"}
+          placeholder={isTask ? "Název prvního úkolu…" : "Rychlá poznámka… (// = úkol)"}
           className={`w-full py-2 px-3 pr-14 text-sm rounded-lg border bg-surface outline-none transition-colors ${
-            isNote
-              ? "border-ink/30 text-ink/60 focus:border-ink/50"
-              : "border-ink/20 focus:border-ink/50"
+            isTask
+              ? "border-ink/20 focus:border-ink/50"
+              : "border-ink/30 text-ink/60 focus:border-ink/50"
           }`}
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-ink/25 pointer-events-none">

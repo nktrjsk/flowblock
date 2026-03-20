@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useQuickAdd, NOTE_PREFIX } from "../../hooks/useQuickAdd";
+import { useQuickAdd, TASK_PREFIX } from "../../hooks/useQuickAdd";
 
 export default function AddTaskInput() {
   const [open, setOpen] = useState(false);
@@ -7,7 +7,7 @@ export default function AddTaskInput() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { submit } = useQuickAdd();
 
-  const isNote = value.startsWith(NOTE_PREFIX);
+  const isTask = value.startsWith(TASK_PREFIX);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -47,9 +47,9 @@ export default function AddTaskInput() {
           setValue("");
           setOpen(false);
         }}
-        placeholder={isNote ? "Rychlá poznámka…" : "Název úkolu… (// = poznámka)"}
+        placeholder={isTask ? "Název úkolu…" : "Rychlá poznámka… (// = úkol)"}
         className={`w-full py-2 px-3 text-sm border rounded-lg bg-surface outline-none focus:border-ink/50 transition-colors ${
-          isNote ? "border-ink/40 text-ink/60" : "border-ink/20"
+          isTask ? "border-ink/20" : "border-ink/40 text-ink/60"
         }`}
       />
     </div>

@@ -8,8 +8,8 @@ const SECTIONS = [
   {
     title: "Inbox",
     items: [
-      { keys: ["Enter"], desc: "Přidat nový úkol" },
-      { keys: ["//", "Enter"], desc: "Přidat poznámku místo úkolu" },
+      { keys: ["Enter"], desc: "Přidat novou poznámku" },
+      { keys: ["//", "Enter"], desc: "Přidat úkol místo poznámky" },
       { keys: ["click na název"], desc: "Editovat úkol inline" },
       { keys: ["🚩"], desc: "Nastavit prioritu úkolu" },
       { keys: ["drag"], desc: "Přetáhnout úkol do kalendáře" },
