@@ -27,9 +27,20 @@ export const DRAG_DATA_KEY = "application/flowblock";
 
 export const NOTIFICATION_LEAD_MINUTES = 5;
 export const NOTIFICATIONS_ENABLED_KEY = "flowblock_notifications";
-export const TRANSITION_BUFFER_KEY = "flowblock_transition_buffer"; // "0" | "5" | "10" | "15"
 export const SHORTCUT_HINTS_KEY = "flowblock_shortcut_hints"; // "true" | "false", default true
+export const SYNC_ENABLED_KEY = "flowblock_sync_enabled"; // "false" to disable, default enabled
 
 export type DragPayload =
   | { type: "task"; taskId: string }
   | { type: "timeblock"; timeBlockId: string; offsetMinutes: number; taskId?: string };
+
+// Module-level drag state — readable during dragover (dataTransfer.getData is blocked by browsers until drop)
+export const activeDrag: { payload: DragPayload | null } = { payload: null };
+
+export function isDragPayload(x: unknown): x is DragPayload {
+  if (typeof x !== "object" || x === null) return false;
+  const p = x as Record<string, unknown>;
+  if (p.type === "task") return typeof p.taskId === "string";
+  if (p.type === "timeblock") return typeof p.timeBlockId === "string" && typeof p.offsetMinutes === "number";
+  return false;
+}

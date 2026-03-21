@@ -1,16 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { useEvolu } from "../../db/evolu";
-import * as Evolu from "@evolu/common";
-
-const NOTE_PREFIX = "//";
+import { useQuickAdd, TASK_PREFIX } from "../../hooks/useQuickAdd";
 
 export default function AddTaskInput() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const { insert } = useEvolu();
+  const { submit } = useQuickAdd();
 
-  const isNote = value.startsWith(NOTE_PREFIX);
+  const isTask = value.startsWith(TASK_PREFIX);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -18,30 +15,10 @@ export default function AddTaskInput() {
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter") {
-      const trimmed = value.trim();
-      if (!trimmed) return;
-      if (isNote) {
-        const content = trimmed.slice(NOTE_PREFIX.length).trim();
-        if (!content) return;
-        const contentResult = Evolu.NonEmptyString1000.from(content);
-        if (!contentResult.ok) return;
-        insert("note", {
-          content: contentResult.value,
-          status: Evolu.NonEmptyString100.orThrow("new"),
-          converted_task_id: null,
-        });
-      } else {
-        const titleResult = Evolu.NonEmptyString1000.from(trimmed);
-        if (!titleResult.ok) return;
-        insert("task", {
-          title: titleResult.value,
-          status: Evolu.NonEmptyString100.orThrow("inbox"),
-          priority: Evolu.NonEmptyString100.orThrow("none"),
-          energy: Evolu.NonEmptyString100.orThrow("normal"),
-        });
+      if (submit(value)) {
+        setValue("");
+        setOpen(false);
       }
-      setValue("");
-      setOpen(false);
     } else if (e.key === "Escape") {
       setValue("");
       setOpen(false);
@@ -70,9 +47,9 @@ export default function AddTaskInput() {
           setValue("");
           setOpen(false);
         }}
-        placeholder={isNote ? "Rychlá poznámka…" : "Název úkolu… (// = poznámka)"}
+        placeholder={isTask ? "Název úkolu…" : "Rychlá poznámka… (// = úkol)"}
         className={`w-full py-2 px-3 text-sm border rounded-lg bg-surface outline-none focus:border-ink/50 transition-colors ${
-          isNote ? "border-ink/40 text-ink/60" : "border-ink/20"
+          isTask ? "border-ink/20" : "border-ink/40 text-ink/60"
         }`}
       />
     </div>

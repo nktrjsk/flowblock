@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu } from "../../db/evolu";
 
 const timeBlocksQuery = evolu.createQuery((db) =>
@@ -9,6 +9,7 @@ const timeBlocksQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("start", "asc"),
 );
+evolu.loadQuery(timeBlocksQuery);
 
 type Row = { id: string; title: string | null; start: string | null; end: string | null };
 
@@ -93,7 +94,7 @@ export default function MobileTodayTab() {
     return () => clearInterval(id);
   }, []);
 
-  const allRows = useQuery(timeBlocksQuery) as unknown as Row[];
+  const allRows = useQuerySubscription(timeBlocksQuery) as unknown as Row[];
   const todayBlocks = getTodayBlocks(allRows);
 
   return (

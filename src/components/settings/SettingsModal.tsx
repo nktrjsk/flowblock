@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { RefreshCw, Pencil, X } from "lucide-react";
 import { Mnemonic } from "@evolu/common";
 import * as Evolu from "@evolu/common";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/evolu";
 import { CalendarId } from "../../db/schema";
 import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
-import { NOTIFICATIONS_ENABLED_KEY, TRANSITION_BUFFER_KEY, SHORTCUT_HINTS_KEY } from "../../constants";
+import { NOTIFICATIONS_ENABLED_KEY, SHORTCUT_HINTS_KEY, SYNC_ENABLED_KEY } from "../../constants";
 import { useToast } from "../ui/Toast";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -15,6 +15,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 interface SettingsModalProps {
   onClose: () => void;
   syncErrors: Record<string, string>;
+  highlightSync?: boolean;
 }
 
 const calendarsQuery = evolu.createQuery((db) =>
@@ -24,12 +25,13 @@ const calendarsQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("display_name", "asc"),
 );
+evolu.loadQuery(calendarsQuery);
 
 const COLORS = ["#4f8ef7", "#e85d5d", "#4caf7a", "#e09b2f", "#9b59b6", "#1a1a2e"];
 
 const INPUT_CLS = "w-full text-sm bg-ink/5 border border-ink/20 rounded-lg px-3 py-1.5 focus:outline-none focus:border-ink/40";
 
-export default function SettingsModal({ onClose, syncErrors }: SettingsModalProps) {
+export default function SettingsModal({ onClose, syncErrors, highlightSync }: SettingsModalProps) {
   const { insert, update } = useEvolu();
   const { show } = useToast();
 
@@ -66,7 +68,7 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
   const shortId = ownerId ? `${ownerId.slice(0, 8)}…${ownerId.slice(-4)}` : "…";
 
   // --- Calendars section ---
-  const calendarRows = useQuery(calendarsQuery);
+  const calendarRows = useQuerySubscription(calendarsQuery);
 
   // Add form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -95,7 +97,20 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
   const [calErrors, setCalErrors] = useState<Record<string, string>>({});
   const mergedErrors: Record<string, string> = { ...syncErrors, ...calErrors };
 
-  // Advanced
+  // Sync section highlight
+  const syncSectionRef = useRef<HTMLElement>(null);
+  const [syncHighlighted, setSyncHighlighted] = useState(false);
+
+  useEffect(() => {
+    if (!highlightSync) return;
+    const el = syncSectionRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setSyncHighlighted(true);
+    const t = setTimeout(() => setSyncHighlighted(false), 2000);
+    return () => clearTimeout(t);
+  }, [highlightSync]);
+
   const [relayUrlValue, setRelayUrlValue] = useState(
     () => localStorage.getItem(EVOLU_RELAY_KEY) || DEFAULT_RELAY_URL,
   );
@@ -147,15 +162,6 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
     setTimeout(() => window.location.reload(), 800);
   }
 
-  const [transitionBuffer, setTransitionBufferState] = useState<"0" | "5" | "10" | "15">(
-    () => (localStorage.getItem(TRANSITION_BUFFER_KEY) as "0" | "5" | "10" | "15") || "0",
-  );
-
-  function handleBufferChange(val: "0" | "5" | "10" | "15") {
-    setTransitionBufferState(val);
-    localStorage.setItem(TRANSITION_BUFFER_KEY, val);
-  }
-
   const [shortcutHints, setShortcutHints] = useState(
     () => localStorage.getItem(SHORTCUT_HINTS_KEY) !== "false",
   );
@@ -183,6 +189,22 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
     () => ("Notification" in window ? Notification.permission : "unsupported"),
   );
+
+  // Sync
+  const [syncEnabled, setSyncEnabled] = useState(
+    () => localStorage.getItem(SYNC_ENABLED_KEY) === "true",
+  );
+
+  function handleSyncToggle() {
+    const next = !syncEnabled;
+    setSyncEnabled(next);
+    if (next) {
+      localStorage.setItem(SYNC_ENABLED_KEY, "true");
+    } else {
+      localStorage.removeItem(SYNC_ENABLED_KEY);
+    }
+    setTimeout(() => window.location.reload(), 300);
+  }
 
   async function handleNotifToggle() {
     if (notificationsEnabled) {
@@ -663,27 +685,6 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
           <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Plánování</h3>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-ink/80">Přestávka mezi bloky</p>
-              <p className="text-xs text-ink/40 mt-0.5">Šrafovaná zóna za každým time-blokem, blokuje slot.</p>
-            </div>
-            <div className="flex rounded-lg border border-ink/15 overflow-hidden shrink-0">
-              {(["0", "5", "10", "15"] as const).map((val) => (
-                <button
-                  key={val}
-                  onClick={() => handleBufferChange(val)}
-                  className={`px-2.5 py-1.5 text-xs transition-colors ${
-                    transitionBuffer === val
-                      ? "bg-ink text-paper"
-                      : "bg-transparent text-ink/50 hover:bg-ink/5"
-                  }`}
-                >
-                  {val === "0" ? "Vypnuto" : `${val} min`}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-4">
-            <div>
               <p className="text-sm text-ink/80">Zkratkové hinty</p>
               <p className="text-xs text-ink/40 mt-0.5">Zobrazit klávesové zkratky u tlačítek (např. Del, Ctrl+↵).</p>
             </div>
@@ -729,6 +730,25 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
           )}
         </section>
 
+        {/* === Sync section === */}
+        <section ref={syncSectionRef} className={`mt-6 rounded-lg transition-all duration-300 ${syncHighlighted ? "ring-2 ring-ink/30 bg-ink/3 px-3 py-2 -mx-3" : ""}`}>
+          <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Synchronizace</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-ink/80">Povolit sync</p>
+              <p className="text-xs text-ink/40 mt-0.5 leading-relaxed">
+                Synchronizace mezi zařízeními přes Evolu relay — open-source, E2E šifrovaný server. Výchozí relay je zdarma. Změna vyžaduje restart.
+              </p>
+            </div>
+            <button
+              onClick={handleSyncToggle}
+              className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${syncEnabled ? "bg-ink" : "bg-ink/20"}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 rounded-full bg-surface shadow transition-all ${syncEnabled ? "left-5" : "left-1"}`} />
+            </button>
+          </div>
+        </section>
+
         {/* === Advanced section === */}
         <section className="mt-6">
           <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Pokročilé</h3>
@@ -736,7 +756,6 @@ export default function SettingsModal({ onClose, syncErrors }: SettingsModalProp
           {/* Relay URL */}
           <div className="flex items-center justify-between mb-1">
             <label className="text-sm text-ink/70">Evolu relay URL</label>
-            {/* Relay connection badge */}
             {relayStatus === "checking" && (
               <span className="text-xs text-ink/40 flex items-center gap-1">
                 <RefreshCw size={10} className="animate-spin" /> Kontroluji…

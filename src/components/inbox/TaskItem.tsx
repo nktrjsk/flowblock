@@ -3,7 +3,7 @@ import confetti from "canvas-confetti";
 import { Flag } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TaskId } from "../../db/schema";
-import { Priority, DRAG_DATA_KEY, DragPayload } from "../../constants";
+import { Priority, DRAG_DATA_KEY, DragPayload, activeDrag } from "../../constants";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
 import { useToast } from "../ui/Toast";
 import * as Evolu from "@evolu/common";
@@ -23,6 +23,7 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
   const [checkAnim, setCheckAnim] = useState(false);
   const [showPriorityPicker, setShowPriorityPicker] = useState(false);
   const checkboxRef = useRef<HTMLButtonElement>(null);
+  const dragGhostRef = useRef<{ el: HTMLElement; src: HTMLElement; onDrag: (e: DragEvent) => void } | null>(null);
   const { update } = useEvolu();
   const toast = useToast();
 
@@ -68,6 +69,50 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
     const payload: DragPayload = { type: "task", taskId: id };
     e.dataTransfer.setData(DRAG_DATA_KEY, JSON.stringify(payload));
     e.dataTransfer.effectAllowed = "move";
+    activeDrag.payload = payload;
+    // Suppress native drag image, show custom ghost centered on cursor
+    const canvas = document.createElement("canvas");
+    canvas.width = 1; canvas.height = 1;
+    e.dataTransfer.setDragImage(canvas, 0, 0);
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const halfW = rect.width / 2;
+    const halfH = rect.height / 2;
+    const ghost = document.createElement("div");
+    Object.assign(ghost.style, {
+      position: "fixed",
+      width: `${rect.width}px`, height: `${rect.height}px`,
+      left: `${e.clientX - halfW}px`, top: `${e.clientY - halfH}px`,
+      backgroundColor: colors.bg,
+      borderLeft: `3px solid ${colors.border}`,
+      borderRadius: "6px",
+      opacity: "0.85",
+      pointerEvents: "none",
+      zIndex: "9999",
+      overflow: "hidden",
+      fontSize: "12px",
+      color: colors.text,
+      padding: "8px 12px",
+      boxSizing: "border-box",
+    });
+    ghost.textContent = title;
+    document.body.appendChild(ghost);
+    const onDrag = (ev: DragEvent) => {
+      if (ev.clientX === 0 && ev.clientY === 0) return;
+      ghost.style.left = `${ev.clientX - halfW}px`;
+      ghost.style.top = `${ev.clientY - halfH}px`;
+    };
+    el.addEventListener("drag", onDrag);
+    dragGhostRef.current = { el: ghost, src: el, onDrag };
+  }
+
+  function handleDragEnd() {
+    activeDrag.payload = null;
+    if (dragGhostRef.current) {
+      dragGhostRef.current.el.remove();
+      dragGhostRef.current.src.removeEventListener("drag", dragGhostRef.current.onDrag);
+      dragGhostRef.current = null;
+    }
   }
 
   function handleEditKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -88,6 +133,7 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
     <div
       draggable
       onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       className={`relative flex items-center gap-2 pl-4 pr-3 py-2.5 rounded-lg hover:bg-ink/5 group cursor-grab active:cursor-grabbing ${waitingFor != null ? "opacity-60" : ""}`}
     >
       {/* Priority bar — vertical strip on left edge */}
@@ -148,7 +194,7 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
       <div className="relative shrink-0">
         <button
           onClick={(e) => { e.stopPropagation(); setShowPriorityPicker((v) => !v); }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-ink/10"
+          className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity p-0.5 rounded hover:bg-ink/10"
           title="Priorita"
         >
           <Flag size={12} style={{ color: colors.border }} />

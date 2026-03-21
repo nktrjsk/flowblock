@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.22.0 (2026-03-18)
+> **Verze dokumentu:** 0.28.0 (2026-03-20)
 > **Status:** Návrh MVP
 
 ---
@@ -147,7 +147,7 @@ Poznámka: VTODO z CalDAV serverů se ignorují — FlowBlock spravuje úkoly sa
 
 ### 4.6 Notes
 
-Rychlé poznámky zachycené z inboxu prefixem `//`. Jsou samostatnou entitou oddělenou od Tasks — nemají prioritu, status ani energii. Slouží jako dočasné záchytné místo pro myšlenky, které zatím nejsou úkolem.
+Rychlé záznamy z inboxu. Výchozí chování quick-add inputu — text bez prefixu se uloží jako poznámka. Prefix `//` přepne input do režimu task. Jsou samostatnou entitou oddělenou od Tasks — nemají prioritu, status ani energii. Slouží jako dočasné záchytné místo pro myšlenky, které zatím nejsou úkolem.
 
 | Sloupec | Typ | Popis |
 |---|---|---|
@@ -159,6 +159,13 @@ Rychlé poznámky zachycené z inboxu prefixem `//`. Jsou samostatnou entitou od
 ---
 
 ## 5. UI Layout
+
+### 5.0 Chování při startu
+
+Aplikace se při otevření zobrazí okamžitě — bez loading screenu, splash screenu ani skeleton stavu.
+`useQuerySubscription` (Evolu) nikdy nesuspenduje React render; UI je dostupné ihned, data se
+dosýpají do komponent reaktivně. Prázdné stavy (prázdný inbox, žádné bloky) jsou validní počáteční
+stavy, ne chybové stavy.
 
 ### 5.1 Dva režimy zobrazení
 
@@ -277,11 +284,34 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
 | `none` | `#2a2c45` | `#475569` | `#94a3b8` |
 | external | `#252540` | `#f5f0e855` dashed | `#f5f0e866` |
 
+#### Vizuální rozlišení — prázdný vs. linked blok
+
+| Typ bloku | Border | Pozadí | Titulek | Ikona |
+|---|---|---|---|---|
+| Prázdný (bez `task_id`) | dashed | průhledné (nižší opacita) | muted barva | — |
+| Linked (s `task_id`) | solid | plné (vyšší opacita) | normální barva | `ListTodo` (Lucide, 10px) |
+
+Vizuální rozlišení umožňuje uživateli periferním viděním okamžitě rozpoznat, které bloky mají přiřazený úkol a které jsou "volné" rezervace.
+
 ### 5.6 Interakce
 
-- **Drag tasku z inboxu** do kalendářového sloupce → vytvoří TimeBlock + změní status úkolu na `planned`
-- **Drag time-blocku v kalendáři** → přesun na jiný slot/den; drag funguje z celé plochy bloku
+- **Vytvoření TimeBlocku double-click + drag** — double-click na prázdné místo v kalendáři
+  spustí drag mode pro definici délky bloku. Táhnutím dolů uživatel určí délku bloku (snap 15 min).
+  Po puštění se blok vytvoří a okamžitě se otevře detail popover pro editaci.
+  Pokud uživatel pustí bez tažení, vytvoří se 60minutový blok.
+- **Drag tasku z inboxu** do kalendářového sloupce → vytvoří TimeBlock + změní status úkolu na `planned`.
+  Nad **prázdným místem** v kalendáři se zobrazí ghost (poloprůhledný dashed obrys) jako náhled nového bloku.
+  Nativní drag image browseru je potlačen. Místo něj se zobrazuje **custom ghost div** sledující kurzor,
+  vycentrovaný na pozici kurzoru — pro přirozený pocit "uchopení" položky.
+- **Přiřazení tasku přetažením na existující blok** — přetažení tasku z inboxu na existující
+  TimeBlock (místo na prázdné místo v kalendáři) přiřadí task k bloku. Task se označí jako
+  `planned`. Při hoveru nad existujícím blokem ghost zmizí a blok se zvýrazní (`ring-2 ring-ink/40`) —
+  vizuální signál, že drop přiřadí task (ne vytvoří nový blok).
+- **Drag time-blocku v kalendáři** → přesun na jiný slot/den; drag funguje z celé plochy bloku.
+  Při dragu se blok centruje pod kurzor (offset = polovina délky bloku).
   - Při dragu se zobrazí **ghost** (poloprůhledný dashed obrys) ukazující cílový slot
+  - Ghost zobrazuje: **prioritní pruh vlevo** (barva dle priority bloku/tasku), **čas** (`HH:MM – HH:MM`) a **titul** bloku nebo přiřazeného tasku
+  - Nativní drag image browseru je potlačen (1px průhledný canvas)
   - Vedle ghosta se zobrazí **tooltip s přesným časem** (`HH:MM – HH:MM`); tooltip se přepne na druhou stranu, pokud je blok ve dvou pravých sloupcích
   - Drop funguje i když je cílový čas překrytý jiným blokem (overlay mechanismus)
 - **Drag time-blocku zpět do inboxu** → odstraní TimeBlock, vrátí úkol do stavu `inbox`; inbox se vizuálně zvýrazní (zelené pozadí + hint text) při přetahování bloku
@@ -289,6 +319,11 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
   - Při aktivním resize (tažení dolní hrany) se kapacitní lišta daného dne (`DayCapacityBars`) aktualizuje **lokálně v reálném čase** — reaguje na průběžnou délku bloku ještě před puštěním myši
   - Finální uložení do Evolu proběhne až po `mouseUp` (stávající chování zachováno); lokální live update je čistě vizuální, bez mezizápisů do DB
   - Stejné chování platí pro drag (přesun bloku mezi sloty) — kapacitní lišta obou dotčených dnů se aktualizuje lokálně po dobu dragu
+- **Kolizní layout (překrývající se bloky)** — pokud se dva nebo více time-bloků v jednom dni překrývají,
+  zobrazí se vedle sebe místo přes sebe. Šířka každého bloku se vypočítá dynamicky (greedy sweepline algoritmus).
+  - Při dragu přesouvaného bloku se ostatní bloky ve stejné kolizní skupině okamžitě rozšíří zpět na plnou šířku
+    (jako by přesouvaný blok nebyl přítomen — two-layout přístup).
+  - Ghost při dragu má šířku odpovídající koliznímu layoutu cílové pozice.
 - **Indikátor aktuálního času** → červená horizontální linka s kruhovým špendlíkem na levém okraji, zobrazuje se pouze ve sloupci aktuálního dne; aktualizuje se každou minutu
 - **Scroll při načtení** → kalendář se automaticky odscrolluje tak, aby byl indikátor aktuálního času viditelný (vertikálně vycentrovaný)
 - **Drop target grid:** 15minutový snap; čtvrthodinové linie vyznačeny tečkovaně v pozadí
@@ -306,6 +341,7 @@ Styl **warm paper-industrial** — inspirovaný fyzickým diářem přeneseným 
   - `pointer-events: none` — zóna není klikatelná, neblokuje drop
   - Při drag & drop a resize se blok automaticky posune za buffer zónu, pokud by do ní zasahoval (clamping na hranici zóny)
   - Buffer zóna je čistě vizuální + UX pomůcka; neukládá se do DB, neovlivňuje uložené časy time-bloků
+  - **Stav implementace:** Feature byla dočasně odstraněna z důvodu chyb; bude reimplementována od základů.
 
 ### 5.7 Kapacitní lišty (per-day)
 
@@ -349,6 +385,8 @@ bez uložení.
 **Co mobilní verze neobsahuje:** týdenní pohled, drag & drop plánování,
 resize time-bloků, dashboard s projekty.
 
+> **TBD:** Detailní specifikace mobilního inboxu (komponenty, pořadí položek, touch interakce) bude doplněna samostatně.
+
 ### 5.9 Nastavení
 
 **Desktop:** ikona `Settings` (Lucide) v pravém horním rohu hlavní lišty.
@@ -363,6 +401,10 @@ proto nezabírá místo v bottom tab baru.
 #### **Obsah modalu**
 
 *Identita (Evolu)*
+- **Sync toggle** — přepínač "Povolit synchronizaci" (výchozí: **vypnuto**). Ovládá, zda se aplikace
+  připojuje k Evolu relay serveru. Slouží jako hlavní on/off pro synchronizaci mezi zařízeními.
+  - Vypnutý sync = aplikace funguje čistě lokálně, bez síťových připojení k relay
+  - Přepínač je umístěn v hlavní sekci Nastavení (ne v Pokročilé) — jde o běžné uživatelské rozhodnutí
 - Zobrazení aktuálního Owner ID (zkrácený hash)
 - Export owner key (tlačítko → stáhne soubor nebo zobrazí key k zkopírování)
 - Import owner key (tlačítko → file picker nebo paste input)
@@ -378,6 +420,17 @@ proto nezabírá místo v bottom tab baru.
   - Prázdné pole = výchozí relay `free.evoluhq.com`
   - Tlačítko "Uložit" — uloží URL do localStorage, aplikace se po 800ms restartuje
   - Varování: "Změna relay URL odpojí synchronizaci s předchozím serverem."
+
+#### highlightSync — zvýrazněné otevření
+
+SettingsModal podporuje prop `highlightSync?: boolean`. Pokud je nastaven na `true`
+(typicky voláno z WelcomeCard přes odkaz "zapnout synchronizaci"):
+- Modal se otevře
+- Automaticky se odscrolluje na sekci *Identita (Evolu)* (kde se nachází sync toggle)
+- Sekce *Identita (Evolu)* se na 2 sekundy vizuálně zvýrazní (ring efekt)
+
+Efekt slouží jako kontextový ukazatel pro uživatele, který přichází z WelcomeCard
+a neví, kde sync nastavení hledat.
 
 *Kalendáře*
 - Seznam přidaných kalendářů (název, typ, barva, čas posledního syncu)
@@ -414,6 +467,7 @@ Sekce denní kapacita bude doplněna postupně.
   - Po každém time-bloku v kalendáři se zobrazí šrafovaná zóna odpovídající délky; zóna vizuálně signalizuje, že slot je vyhrazen na přechod
   - Při drag & drop i resize se blok automaticky posune tak, aby nepřetékal do buffer zóny jiného bloku
   - Viz sekce 5.6 (interakce) pro detailní chování buffer zón v kalendáři
+  - **Stav implementace:** Feature byla dočasně odstraněna; bude reimplementována od základů.
 - **Zkratkové hinty** — toggle (default = zapnuto)
   - Pokud zapnuto: u tlačítek v popovert se zobrazují malé klávesové zkratky (např. `Del` u tlačítka Smazat, `Ctrl+↵` u tlačítka Hotovo)
   - Ukládá se do localStorage (`flowblock_shortcut_hints`)
@@ -511,9 +565,7 @@ Time-blocky jsou zbarveny dle priority celým pozadím bloku (viz sekce 5.5). Ž
 
 Na mobilní verzi (sekce 5.8) je priorita v timeline zobrazena stejným barevným pruhem na levém okraji karty bloku. Nastavení priority je dostupné přes detail úkolu (long-press nebo tap na kartu).
 
-### 5.13 Detail time-bloku — popover (KONCEPT, ceka na prototyp)
-
-> **Stav:** Navrhované chování. Bude nejdrive prototypovano; implementace do kodu nastane az po odsouhlaseni prototypu.
+### 5.13 Detail time-bloku — popover
 
 #### Spoustec
 
@@ -557,14 +609,40 @@ Editovatelne parametry:
 
 #### Chovani pri editaci propojeného ukolu
 
-| Akce | Dopad na propojeny ukol |
-|---|---|
-| Zmena `title` bloku | Zadny dopad — blok ma vlastni nazev nezavisly na ukolu |
-| Odpojeni ukolu (x) | Ukol se vrati do stavu `inbox`; blok se stane volnym (bez `task_id`) |
-| Smazani bloku | Ukol se vrati do stavu `inbox` |
-| Zmena priority bloku | Priority bloku a ukolu jsou nezavisle; zmena bloku neovlivni ukol |
+TimeBlock si uchovává vlastní `title` a `priority` nezávisle na přiřazeném tasku. Při zobrazení mají taskové hodnoty přednost — title a priority přiřazeného tasku vizuálně "překryjí" vlastní hodnoty bloku, ale data bloku zůstávají v DB nedotčena. Po odpojení tasku se blok automaticky vrátí na svá původní nastavení bez nutnosti jakékoliv další akce ze strany uživatele.
 
-MVP nepodporuje prepojeni bloku na jiny ukol — to je mozne pres drag & drop v kalendari.
+| Akce | Dopad na blok | Dopad na úkol |
+|---|---|---|
+| Přiřazení tasku k bloku | `task_id` se uloží; vlastní `title` a `priority` bloku se nepřepisují | Task se označí jako `planned` |
+| Zobrazení linked bloku | Zobrazuje se `task.title` a `task.priority` (mají přednost před hodnotami bloku) | — |
+| Změna `title` bloku | Uloží se do vlastního `title` bloku; po odpojení tasku se opět zobrazí | Žádný dopad |
+| Změna `priority` bloku | Uloží se do vlastní `priority` bloku; po odpojení tasku se opět projeví | Žádný dopad |
+| Odpojení tasku (tlačítko "Odpojit") | Blok se vrátí na vlastní `title` a `priority`; `task_id` = null | Task se vrátí do stavu `inbox` |
+| Smazání bloku | Blok se odstraní | Task se vrátí do stavu `inbox` |
+
+Blok vytvořený přetažením tasku z inboxu na prázdné místo v kalendáři si jako vlastní `title` zachová název tasku v okamžiku vzniku — tento title zůstane i po případném odpojení tasku.
+
+Přepojení bloku na jiný úkol je možné přes task search dropdown v popovert nebo přetažením tasku z inboxu na existující blok v kalendáři.
+
+#### Přiřazení úkolu z popovert — task search input
+
+Sekce "Propojený úkol" v detail popovert podporuje dva stavy:
+
+**Žádný úkol není přiřazen:**
+Zobrazí se inline search input s ikonou `Link2` (Lucide) nalevo. Dropdown
+se otevírá při focusu inputu (ne kliknutím na tlačítko) a zavírá se okamžitě
+při ztrátě focusu — bez prodlevy.
+- Šipky nahoru/dolů pohybují kurzorem v dropdownu
+- Enter vybere zvýrazněný task a přiřadí ho k bloku; task se označí jako `planned`
+- Escape zavře dropdown bez změny
+
+Tab flow v popovert zahrnuje search input: Priorita → Search input → Hotovo
+(Shift+Tab funguje v opačném směru).
+
+**Úkol je přiřazen:**
+Zobrazí se název přiřazeného tasku se dvěma akcemi:
+- Tlačítko "Změnit" — zobrazí search input pro přiřazení jiného tasku
+- Tlačítko "Odpojit" — odstraní vazbu; task se vrátí do stavu `inbox`
 
 ### 5.13.1 Time input — segmentovaný vstup
 
@@ -657,7 +735,7 @@ resize operacích v kalendáři — v detail popovert není aktivní.*
 Pořadí Tab focusu v popovert:
 
 ```
-title → Začátek → Konec → Priorita → Hotovo
+title → Začátek → Konec → Priorita → Search input (pokud není úkol přiřazen) → Hotovo
 ```
 
 Akční prvky mimo Tab flow (tabIndex=-1): tlačítko X (zavřít), tlačítko Smazat,
@@ -719,22 +797,161 @@ Celý blok priority je jeden focusovatelný element (div s tabIndex=0).
 
 #### Spouštěč
 
-V `AddTaskInput` (inline input v inboxu) — pokud text začíná prefixem `//`, přepne se do režimu poznámky:
+Logika pro rozlišení task vs. poznámka je sdílená přes hook `useQuickAdd` a funguje identicky na obou entry pointech:
 
-- Placeholder se změní na "Rychlá poznámka…" (místo "Název úkolu…")
-- Vizuální styl inputu se mírně odliší (border tmavší, text ztlumený) — signal, že jde o jiný typ záznamu
+- **Desktop:** `AddTaskInput` — inline input ve sloupci inboxu, aktivuje se kliknutím na "+ Přidat"
+- **Mobil:** `QuickAddSheet` — bottom sheet, aktivuje se FAB tlačítkem (+)
+
+Výchozí režim inputu je poznámka. Pokud text začíná prefixem `//`, vstup se přepne do režimu tasku:
+
+- Placeholder v výchozím (poznámkovém) režimu: "Rychlá poznámka… (// = úkol)"
+- Při aktivním `//` prefixu se placeholder změní na "Název úkolu…"
+- Vizuální styl inputu se mírně odliší — signal, že jde o jiný typ záznamu
 - Tlačítko "+ Přidat" (zavřený stav inputu) zůstává beze změny
-- Nápověda pro prefix je součástí placeholder textu v standardním režimu: "Název úkolu… (// = poznámka)"
+- Na mobilu se label `QuickAddSheet` dynamicky mění: "Nová poznámka" → "Nový úkol"
 
 #### Chování při uložení
 
-- Enter v režimu poznámky vytvoří nový záznam v tabulce `note` (viz sekce 4.6) se statusem `new`
-- Prefix `//` se do obsahu poznámky neukládá — ukládá se jen text za ním
-- Prázdný text za prefixem (tj. pouze `//`) se neuloží — stejné chování jako u prázdného úkolu
+- Enter bez prefixu vytvoří nový záznam v tabulce `note` (viz sekce 4.6) se statusem `new`
+- Enter s prefixem `//` vytvoří nový task (viz sekce 4.1)
+- Prefix `//` se do obsahu tasku neukládá — ukládá se jen text za ním
+- Prázdný text (nebo pouze `//`) se neuloží — stejné chování jako u prázdného vstupu
 
 #### Co se s poznámkami děje dál
 
 MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — funkce pro prohlížení a zpracování poznámek je budoucí feature. Datový model (`converted_task_id`, status `reviewed`) je připraven pro pozdější Review mode (viz sekce 14).
+
+### 5.15 WelcomeCard — onboarding prázdného inboxu
+
+#### Podmínky zobrazení
+
+WelcomeCard se zobrazí v inboxovém sidebaru, pokud jsou splněny **obě** podmínky:
+1. Inbox je prázdný (žádné tasky ani poznámky)
+2. Uživatel kartu dosud nedismissnul (`flowblock_welcome_dismissed` v localStorage není nastaveno)
+
+Jakmile uživatel přidá první úkol nebo poznámku (inbox přestane být prázdný), karta zmizí automaticky — podmínka prázdnosti přestane být splněna.
+
+#### Vizuální styl
+
+"Paper-note" styl — mírně odlišné pozadí od okolního inboxu (`rgba(26,26,46,0.02)`), subtle box-shadow. Zapadá do "warm paper-industrial" estetiky a nepůsobí jako systémová notifikace.
+
+#### Obsah
+
+```
+┌──────────────────────────────────┐ ×
+│  Sem patří vše,                  │
+│  co ti teď leží v hlavě.         │
+│  Napiš úkol, přetáhni ho        │
+│  do kalendáře a máš plán.        │
+│                                  │
+│  [ Název prvního úkolu…  Enter→] │
+│                                  │
+│  nebo načíst ukázkový den        │
+│ ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │
+│  Data zůstávají v tvém prohlížeči│
+│  zapnout synchronizaci ? Evolu   │
+│                          Přehled │
+└──────────────────────────────────┘
+```
+
+- **Nadpis:** "Sem patří vše, co ti teď leží v hlavě." (Instrument Serif italic)
+- **Podtitulek:** "Napiš úkol, přetáhni ho do kalendáře a máš plán. Tak jednoduché to je."
+- **Inline input** s `autoFocus` — uživatel může začít psát okamžitě bez kliknutí
+  - Placeholder: "Název prvního úkolu…" (nebo "Rychlá poznámka…" pokud text začíná `//`)
+  - Enter uloží záznam (přes `useQuickAdd`, stejná logika jako `AddTaskInput`) a automaticky dismissne kartu
+  - Escape dismissne kartu bez uložení
+  - Hint "Enter →" zobrazen jako ztlumený text uvnitř inputu vpravo
+- **Sekundární CTA:** "nebo **načíst ukázkový den**" — vloží 5 demo tasků + 3 timeblocks s dnešními časy; poté kartu dismissne
+- **Dělicí čára** (dashed)
+- **Footer:**
+  - Privacy řádek: "Data zůstávají v tvém prohlížeči, případně lze zapnout synchronizaci pomocí Evolu"
+  - "zapnout synchronizaci" — odkaz, který otevře SettingsModal s `highlightSync=true` (scrolluje a highlightuje sekci Pokročilé)
+  - `?` tooltip vedle "Evolu" — vysvětluje co Evolu je (open-source local-first DB, volitelná E2E synchronizace, žádný vendor lock-in)
+  - "Přehled funkcí" — odkaz vpravo; otevře HelpModal
+
+#### Dismiss
+
+- Tlačítko `×` v pravém horním rohu — dismissne kartu, uloží příznak do localStorage; karta se nevrátí
+- Po dismissu (jakýmkoliv způsobem) se `flowblock_welcome_dismissed = "1"` zapíše do localStorage
+
+#### Demo data (načíst ukázkový den)
+
+Vloží ukázkový obsah s dnešními časy pro ilustraci workflow:
+
+**Tasky:**
+
+| Název | Priorita | Energie |
+|---|---|---|
+| Odpovědět Martinovi na nabídku | high | draining |
+| Koupit dárek pro Lucii | medium | normal |
+| Přečíst článek o produktivitě | low | lite |
+| Zavolat zubařovi | none | normal |
+| Nákup — mléko, chléb, káva | none | lite |
+
+**TimeBlocks (dnešní datum, relativní časy):**
+
+| Název | Začátek | Konec | Priorita |
+|---|---|---|---|
+| Odpovědět Martinovi na nabídku | 09:00 | 10:00 | high |
+| Administrativa | 10:30 | 11:00 | medium |
+| Přečíst článek o produktivitě | 14:00 | 14:30 | low |
+
+### 5.16 HelpModal — přehled funkcí a zkratek
+
+#### Spouštěče
+
+HelpModal lze otevřít ze dvou míst:
+1. **Header** — ikona `?` v hlavní liště (vedle ikony ⚙ Nastavení)
+2. **WelcomeCard** — odkaz "Přehled funkcí" v footeru karty (viz sekce 5.15)
+
+#### Forma
+
+Modal (`z-index: 90`) s poloprůhledným překrytím pozadí (`z-index: 80`). Šířka max. `28rem`, max. výška `80vh` s vnitřním scrollem. Zavírá se kliknutím na překrytí nebo tlačítkem `×`.
+
+#### Obsah — sekce
+
+Sekce jsou seřazeny podle frekvence použití:
+
+**Inbox**
+
+| Akce | Klávesa / gesta |
+|---|---|
+| Přidat nový úkol | Enter |
+| Přidat poznámku místo úkolu | `//` + Enter |
+| Editovat úkol inline | klik na název |
+| Nastavit prioritu úkolu | ikona vlajky |
+| Naplánovat úkol | drag do kalendáře |
+
+**Kalendář**
+
+| Akce | Klávesa / gesta |
+|---|---|
+| Vytvořit nový timeblock | double-click |
+| Naplánovat úkol na konkrétní čas | drag z inboxu |
+| Přiřadit úkol k existujícímu bloku | drag z inboxu na blok |
+| Přesunout timeblock na jiný čas nebo den | drag bloku |
+| Změnit délku bloku tažením | tažení okraje bloku |
+| Otevřít detail bloku | klik na blok |
+
+**Detail bloku**
+
+| Akce | Klávesa |
+|---|---|
+| Uložit změny | Ctrl+Enter |
+| Zavřít bez uložení | Esc |
+| Smazat blok | Del |
+| Změnit prioritu bloku | ← → |
+| Propojit / odpojit úkol | ikona odkazu |
+
+**Navigace**
+
+| Akce | Klávesa |
+|---|---|
+| Zavřít otevřený panel nebo modal | Esc |
+
+#### Footer
+
+Privacy poznámka: "Data jsou uložena lokálně v tvém prohlížeči. Sync mezi zařízeními lze zapnout v Nastavení."
 
 ---
 
@@ -759,6 +976,8 @@ MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — fu
 - [x] Kalendářové sloupce (dnes + zítra) jako drop target
 - [x] Týdenní pohled (sekundární, přepínatelný)
 - [x] Drag tasku z inboxu do kalendáře (ghost + tooltip)
+- [x] Drag ghost — prioritní pruh, čas, titul; custom ghost pro inbox drag; potlačený nativní drag image — viz sekce 5.6
+- [x] Kolizní layout time-bloků (překrývající se bloky vedle sebe, greedy sweepline; two-layout při dragu) — viz sekce 5.6
 - [x] Drag time-blocku v kalendáři (přesun slot/den)
 - [x] Drag time-blocku zpět do inboxu
 - [x] Resize time-blocku (kruhové handles, 15min snap)
@@ -771,9 +990,20 @@ MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — fu
 - [x] Dark mode — přepínač v Nastavení, systémová detekce, localStorage persistence (viz sekce 5.4, 5.9)
 - [x] Vlastní Evolu relay URL — konfigurace v Nastavení, Pokročilé (viz sekce 5.9)
 - [x] Formát času — toggle 24h / 12h AM·PM v Nastavení → Vzhled, localStorage persistence (viz sekce 5.9)
-- [x] Inline confirm dialog při smazání time-bloku — viz sekce 5.13
-- [x] Quick Notes — rychlé poznámky z inboxu prefixem `//` (viz sekce 4.6, 5.14)
-- [x] Sekce Plánování v Nastavení — přestávka mezi bloky (transition buffer zóny) + zkratkové hinty (viz sekce 5.6, 5.9)
+- [x] Inline confirm dialog + klávesa `Del` při smazání time-bloku — viz sekce 5.13
+- [x] Quick Notes — rychlé záznamy z inboxu; výchozí = poznámka, prefix `//` = task (viz sekce 4.6, 5.14)
+- [x] Sjednocení task/note entry přes `useQuickAdd` hook — desktop (`AddTaskInput`) i mobil (`QuickAddSheet`) funkčně identické (viz sekce 5.14)
+- [x] Mobilní inbox — `TaskItem` a `NoteItem` sdílené s desktopem; touch-always-visible akce (viz sekce 5.8)
+- [x] WelcomeCard — onboarding prázdného inboxu s inline inputem, demo daty a odkazy do HelpModal a Nastavení (viz sekce 5.15)
+- [x] HelpModal — přehled funkcí a klávesových zkratek; dostupný z Headeru i WelcomeCard (viz sekce 5.16)
+- [x] SettingsModal `highlightSync` — kontextové zvýraznění sekce Identita (Evolu) při příchodu z WelcomeCard (viz sekce 5.9)
+- [x] Sync toggle "Povolit synchronizaci" v Nastavení → Identita (výchozí: vypnuto) — viz sekce 5.9
+- [x] Okamžitý start bez loading screenu (`useQuerySubscription` nesuspenduje) — viz sekce 5.0
+- [ ] Sekce Plánování v Nastavení — přestávka mezi bloky (transition buffer zóny) dočasně odstraněna, bude reimplementována; zkratkové hinty funkční (viz sekce 5.6, 5.9)
+- [x] Vytvoření TimeBlocku double-click + drag v kalendáři (bez tažení = 60min blok, s tažením = custom délka; viz sekce 5.6)
+- [x] Vizuální rozlišení prázdného vs. linked bloku — dashed/solid border, opacita, `ListTodo` ikona (viz sekce 5.5)
+- [x] Přiřazení tasku přetažením na existující blok v kalendáři — ring highlight při hoveru (viz sekce 5.6)
+- [x] Task search dropdown v detail popovert — vyhledávání, přiřazení, změna a odpojení tasku (viz sekce 5.13)
 
 ### Vrstva 2: Integrace externích kalendářů (read-only)
 - [x] Připojení k CalDAV serveru (konfigurace URL + credentials) → čtení VEVENT → ExternalEvents

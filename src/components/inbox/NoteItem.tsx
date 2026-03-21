@@ -43,7 +43,7 @@ export default function NoteItem({ id, content }: NoteItemProps) {
       <FileText size={13} className="mt-0.5 shrink-0 text-ink/35" />
       <span className="flex-1 text-sm text-ink/60 leading-snug line-clamp-2">{content}</span>
       {/* Actions — visible on hover */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity shrink-0">
         <button
           onClick={handleConvert}
           title="Konvertovat na úkol"

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Trash2 } from "lucide-react";
-import { useEvolu } from "../../db/evolu";
+import { X, Trash2, Link2, Link2Off } from "lucide-react";
+import { useEvolu, evolu } from "../../db/evolu";
+import { useQuerySubscription } from "@evolu/react";
 import { TimeBlockId, TaskId } from "../../db/schema";
 import { Priority, SHORTCUT_HINTS_KEY } from "../../constants";
 import * as Evolu from "@evolu/common";
@@ -8,6 +9,14 @@ import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import TimeSegmentInput from "./TimeSegmentInput";
 import type { TimeSegmentInputHandle } from "./TimeSegmentInput";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
+
+const allTasksQuery = evolu.createQuery((db) =>
+  db.selectFrom("task")
+    .select(["id", "title", "status"])
+    .where("isDeleted", "is", null)
+    .orderBy("title", "asc"),
+);
+evolu.loadQuery(allTasksQuery);
 
 const POPOVER_WIDTH = 272;
 const PRIORITIES: Priority[] = ["none", "low", "medium", "high"];
@@ -47,7 +56,13 @@ export default function TimeBlockPopover({
   const { update } = useEvolu();
   const { timeFormat } = useTimeFormat();
   const priorityColors = usePriorityColors();
+  const taskRows = useQuerySubscription(allTasksQuery);
   const [titleValue, setTitleValue] = useState(title);
+  const [taskSearch, setTaskSearch] = useState("");
+  const [showTaskSearch, setShowTaskSearch] = useState(false);
+  const [taskSearchFocused, setTaskSearchFocused] = useState(false);
+  const taskSearchRef = useRef<HTMLInputElement>(null);
+  const [taskDropdownIdx, setTaskDropdownIdx] = useState(0);
 
   const [startMin, setStartMin] = useState(startMinutes % (24 * 60));
   const [endMin, setEndMin] = useState(endMinutes % (24 * 60));
@@ -97,6 +112,10 @@ export default function TimeBlockPopover({
   }, [showDeleteConfirm]);
 
   useEffect(() => {
+    if (showTaskSearch) taskSearchRef.current?.focus();
+  }, [showTaskSearch]);
+
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         if (showDeleteConfirm) { setShowDeleteConfirm(false); return; }
@@ -124,6 +143,26 @@ export default function TimeBlockPopover({
     onClose();
   }
 
+  const filteredTasks = taskRows.filter((t) => {
+    if (!t.title) return false;
+    if (String(t.status) === "done") return false;
+    return String(t.title).toLowerCase().includes(taskSearch.toLowerCase());
+  });
+
+  function handleTaskAssign(task: typeof taskRows[number]) {
+    update("timeBlock", {
+      id,
+      task_id: task.id,
+    });
+    if (taskId && taskId !== task.id) {
+      update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
+    }
+    update("task", { id: task.id, status: Evolu.NonEmptyString100.orThrow("planned") });
+    setShowTaskSearch(false);
+    setTaskSearch("");
+    onClose();
+  }
+
   function focusAfterEnd() {
     prioGroupRef.current?.focus();
   }
@@ -141,18 +180,24 @@ export default function TimeBlockPopover({
     }
     if (e.key === "Tab" && !e.shiftKey) {
       e.preventDefault();
-      hotovoBtnRef.current?.focus();
+      if (!taskId || showTaskSearch) {
+        taskSearchRef.current?.focus();
+      } else {
+        hotovoBtnRef.current?.focus();
+      }
     }
   }
 
   return (
     <>
-      <div className="fixed inset-0 z-[90]" onClick={onClose} />
+      <div data-popover="true" className="fixed inset-0 z-[90]" onClick={onClose} onMouseDown={(e) => e.stopPropagation()} />
 
       <div
+        data-popover="true"
         style={{ position: "fixed", left, top, width: POPOVER_WIDTH, zIndex: 100 }}
         className="bg-surface rounded-xl shadow-xl border border-ink/10 p-4 flex flex-col gap-3"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Close — outside tab order, use Escape */}
         <button
@@ -166,6 +211,7 @@ export default function TimeBlockPopover({
         {/* Title */}
         <input
           autoFocus
+          onFocus={(e) => e.target.select()}
           value={titleValue}
           onChange={(e) => setTitleValue(e.target.value)}
           onKeyDown={(e) => {
@@ -295,23 +341,77 @@ export default function TimeBlockPopover({
           ))}
         </div>
 
-        {/* Connected task — outside tab order for now */}
-        {taskId && (
-          <div className="flex items-center gap-2 text-xs text-ink/60 bg-ink/5 rounded-lg px-3 py-2">
-            <span className="flex-1 truncate">
-              <span className="text-ink/40">Úkol: </span>
-              <span className="text-ink/80">{taskTitle ?? "—"}</span>
-            </span>
-            <button
-              tabIndex={-1}
-              onClick={handleDisconnect}
-              className="shrink-0 hover:text-red-500 transition-colors"
-              title="Odpojit úkol"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        )}
+        {/* Task linking */}
+        <div className="relative">
+          {taskId && !showTaskSearch ? (
+            <div className="flex items-center gap-2 text-xs text-ink/60 bg-ink/5 rounded-lg px-3 py-2">
+              <Link2 size={11} className="shrink-0 text-ink/40" />
+              <span className="flex-1 truncate text-ink/80">{taskTitle ?? "—"}</span>
+              <button
+                tabIndex={-1}
+                onClick={() => setShowTaskSearch(true)}
+                className="shrink-0 hover:text-ink transition-colors"
+                title="Změnit úkol"
+              >
+                <Link2 size={11} />
+              </button>
+              <button
+                tabIndex={-1}
+                onClick={handleDisconnect}
+                className="shrink-0 hover:text-red-500 transition-colors"
+                title="Odpojit úkol"
+              >
+                <Link2Off size={11} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-ink/5 rounded-lg px-3 py-2">
+              <Link2 size={11} className="shrink-0 text-ink/40" />
+              <input
+                ref={taskSearchRef}
+                value={taskSearch}
+                onChange={(e) => { setTaskSearch(e.target.value); setTaskDropdownIdx(0); }}
+                onFocus={() => setTaskSearchFocused(true)}
+                onBlur={() => setTaskSearchFocused(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    if (taskId) { setShowTaskSearch(false); setTaskSearch(""); }
+                    else taskSearchRef.current?.blur();
+                  }
+                  if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); hotovoBtnRef.current?.focus(); }
+                  if (e.key === "Tab" && e.shiftKey) { e.preventDefault(); prioGroupRef.current?.focus(); }
+                  if (e.key === "ArrowDown") { e.preventDefault(); setTaskDropdownIdx((i) => Math.min(i + 1, filteredTasks.length - 1)); }
+                  if (e.key === "ArrowUp") { e.preventDefault(); setTaskDropdownIdx((i) => Math.max(i - 1, 0)); }
+                  if (e.key === "Enter" && filteredTasks[taskDropdownIdx]) { handleTaskAssign(filteredTasks[taskDropdownIdx]); }
+                }}
+                placeholder="Přiřadit úkol…"
+                className="flex-1 text-xs bg-transparent outline-none placeholder:text-ink/40"
+              />
+            </div>
+          )}
+
+          {taskSearchFocused && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-ink/15 rounded-lg shadow-lg z-[110] overflow-hidden">
+              <div className="max-h-40 overflow-y-auto">
+                {filteredTasks.length === 0 ? (
+                  <p className="text-xs text-ink/40 px-3 py-2">Žádné úkoly</p>
+                ) : (
+                  filteredTasks.map((t, i) => (
+                    <button
+                      key={String(t.id)}
+                      onMouseDown={(e) => { e.preventDefault(); handleTaskAssign(t); }}
+                      className={`w-full text-left text-xs px-3 py-2 truncate transition-colors ${
+                        i === taskDropdownIdx ? "bg-ink/8 text-ink" : "text-ink/70 hover:bg-ink/5"
+                      }`}
+                    >
+                      {String(t.title)}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Actions */}
         {showDeleteConfirm ? (

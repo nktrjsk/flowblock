@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu } from "../db/evolu";
 import { NOTIFICATION_LEAD_MINUTES, NOTIFICATIONS_ENABLED_KEY } from "../constants";
 
@@ -12,6 +12,7 @@ const timeBlocksQuery = evolu.createQuery((db) =>
     .where("isDeleted", "is", null)
     .orderBy("start", "asc"),
 );
+evolu.loadQuery(timeBlocksQuery);
 
 type BlockRow = { id: unknown; title: unknown; start: string | null; end: string | null };
 
@@ -46,7 +47,7 @@ function showNotification(title: string, body: string) {
 }
 
 export function useBlockTransitionNotifications() {
-  const blocks = useQuery(timeBlocksQuery);
+  const blocks = useQuerySubscription(timeBlocksQuery);
   const notifiedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {

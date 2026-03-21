@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@evolu/react";
+import { useQuerySubscription } from "@evolu/react";
 import { evolu } from "../../db/evolu";
 import DayCapacityBars from "../calendar/DayCapacityBars";
 import MobileInboxTab from "./MobileInboxTab";
@@ -13,6 +13,7 @@ const timeBlocksQuery = evolu.createQuery((db) =>
     .select(["id", "start", "end"])
     .where("isDeleted", "is", null),
 );
+evolu.loadQuery(timeBlocksQuery);
 
 function getTodayPlannedMinutes(
   rows: { id: string; start: string | null; end: string | null }[],
@@ -40,7 +41,7 @@ export default function MobileLayout() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const blockRows = useQuery(timeBlocksQuery);
+  const blockRows = useQuerySubscription(timeBlocksQuery);
   const plannedMinutes = getTodayPlannedMinutes(
     blockRows as unknown as { id: string; start: string | null; end: string | null }[],
   );

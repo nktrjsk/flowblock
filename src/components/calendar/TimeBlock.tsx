@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { flushSync } from "react-dom";
-import { GripVertical } from "lucide-react";
+import { GripVertical, ListTodo } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
 import { TimeBlockId, TaskId } from "../../db/schema";
 import {
@@ -9,6 +9,7 @@ import {
   DragPayload,
   HOUR_HEIGHT_PX,
   SNAP_MINUTES,
+  activeDrag,
 } from "../../constants";
 import * as Evolu from "@evolu/common";
 import TimeBlockPopover from "./TimeBlockPopover";
@@ -36,7 +37,10 @@ type ResizeEdge = "top" | "bottom";
 interface TimeBlockComponentProps extends TimeBlockProps {
   dayDate: Date;
   taskTitle?: string | null;
+  col?: number;
+  totalCols?: number;
   onResizeChange?: (id: string, liveStart: number | null, liveEnd: number | null) => void;
+  autoOpen?: boolean;
 }
 
 export default function TimeBlock({
@@ -48,13 +52,17 @@ export default function TimeBlock({
   durationMinutes,
   dayDate,
   taskTitle,
+  col = 0,
+  totalCols = 1,
   onResizeChange,
+  autoOpen,
 }: TimeBlockComponentProps) {
   const [liveResize, setLiveResize] = useState<{
     startMinutes: number;
     endMinutes: number;
   } | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [anchorPos, setAnchorPos] = useState<{ x: number; y: number } | null>(null);
   const { update } = useEvolu();
   const { timeFormat } = useTimeFormat();
@@ -75,6 +83,14 @@ export default function TimeBlock({
     setLiveResize(null);
   }, [startMinutes, durationMinutes]);
 
+  useEffect(() => {
+    if (autoOpen && blockRef.current) {
+      const rect = blockRef.current.getBoundingClientRect();
+      setAnchorPos({ x: rect.left + rect.width / 2, y: rect.top });
+      setPopoverOpen(true);
+    }
+  }, [autoOpen]);
+
   const priorityColors = usePriorityColors();
   const prio = (priority ?? "none") as Priority;
   const colors = priorityColors[prio] ?? priorityColors.none;
@@ -93,9 +109,8 @@ export default function TimeBlock({
       return;
     }
     isDragging.current = true;
-    const blockTopPx = (e.currentTarget as HTMLElement).getBoundingClientRect().top;
-    const cursorOffsetPx = e.clientY - blockTopPx;
-    const offsetMinutes = Math.round((cursorOffsetPx / HOUR_HEIGHT_PX) * 60 / SNAP_MINUTES) * SNAP_MINUTES;
+    // Center block under cursor
+    const offsetMinutes = Math.round(displayDuration / 2 / SNAP_MINUTES) * SNAP_MINUTES;
 
     const payload: DragPayload = {
       type: "timeblock",
@@ -105,11 +120,18 @@ export default function TimeBlock({
     };
     e.dataTransfer.setData(DRAG_DATA_KEY, JSON.stringify(payload));
     e.dataTransfer.effectAllowed = "move";
+    // Store in module variable — dataTransfer.getData() is blocked in dragover by browsers
+    activeDrag.payload = payload;
+    // Suppress native drag image — calendar ghost handles visual feedback
+    const canvas = document.createElement("canvas");
+    canvas.width = 1; canvas.height = 1;
+    e.dataTransfer.setDragImage(canvas, 0, 0);
   }
 
   function handleDragEnd() {
     isDragging.current = false;
     justDragged.current = true;
+    activeDrag.payload = null;
     setTimeout(() => { justDragged.current = false; }, 200);
   }
 
@@ -192,15 +214,28 @@ export default function TimeBlock({
         style={{
           position: "absolute",
           top,
-          left: 2,
-          right: 2,
+          left: `calc(${(col / totalCols) * 100}% + 2px)`,
+          width: `calc(${(1 / totalCols) * 100}% - 4px)`,
           height,
-          backgroundColor: colors.bg,
-          borderLeft: `3px solid ${colors.border}`,
-          color: colors.text,
           zIndex: 10,
+          ...(taskId
+            ? {
+                backgroundColor: colors.bg,
+                borderLeft: `3px solid ${colors.border}`,
+                color: colors.text,
+              }
+            : {
+                backgroundColor: colors.bg + "99",
+                border: `1.5px dashed ${colors.border}`,
+                color: colors.text,
+              }),
         }}
-        className="rounded-sm cursor-pointer select-none group overflow-visible"
+        data-block="true"
+        data-block-id={String(id)}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false); }}
+        onDrop={() => setIsDragOver(false)}
+        className={`rounded-sm cursor-pointer select-none group overflow-visible transition-[box-shadow] ${isDragOver ? "ring-2 ring-ink/40" : ""}`}
       >
         {/* Top resize handle */}
         <div
@@ -213,11 +248,14 @@ export default function TimeBlock({
 
         {/* Content */}
         <div className="h-full flex flex-col justify-start pt-0.5 px-1.5 overflow-hidden">
-          <span className="text-[10px] opacity-60 leading-none">
-            {formatMinutes(displayStart, timeFormat)}–{formatMinutes(endMinutes, timeFormat)}
-          </span>
-          <span className="text-xs font-medium leading-tight mt-0.5 truncate">
-            {title}
+          <div className="flex items-center gap-0.5">
+            <span className="text-[10px] opacity-60 leading-none flex-1 truncate">
+              {formatMinutes(displayStart, timeFormat)}–{formatMinutes(endMinutes, timeFormat)}
+            </span>
+            {taskId && <ListTodo size={18} className="opacity-60 shrink-0" />}
+          </div>
+          <span className={`text-xs leading-tight mt-0.5 truncate ${taskId ? "font-medium" : "font-normal opacity-70"}`}>
+            {taskId && taskTitle ? taskTitle : title}
           </span>
         </div>
 
