@@ -10,6 +10,7 @@ const relayUrl = localStorage.getItem(EVOLU_RELAY_KEY) || DEFAULT_RELAY_URL;
 
 export const evolu = createEvolu(evoluReactWebDeps)(Database, {
   name: SimpleName.orThrow("FlowBlock"),
+  reloadUrl: import.meta.env.BASE_URL,
   transports: [{ type: "WebSocket", url: relayUrl }],
 });
 export const useEvolu = createUseEvolu(evolu);
