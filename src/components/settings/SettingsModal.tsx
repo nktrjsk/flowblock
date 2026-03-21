@@ -62,7 +62,6 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
   async function handleImport() {
     const parsed = Mnemonic.from(importValue.trim());
     if (!parsed.ok) { setImportError("Neplatný formát klíče. Zkontroluj 24 slov."); return; }
-    sessionStorage.setItem("evolu-restore-redirect", window.location.pathname);
     await evolu.restoreAppOwner(parsed.value);
   }
 

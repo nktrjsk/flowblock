@@ -16,6 +16,7 @@ const syncEnabled = localStorage.getItem(SYNC_ENABLED_KEY) === "true";
 
 export const evolu = createEvolu(evoluReactWebDeps)(Database, {
   name: SimpleName.orThrow("FlowBlock"),
+  reloadUrl: import.meta.env.BASE_URL,
   transports: syncEnabled ? [{ type: "WebSocket", url: relayUrl }] : [],
 });
 export const useEvolu = createUseEvolu(evolu);
