@@ -1,6 +1,6 @@
 # FlowBlock — ADHD-friendly Local-First Plánovač
 
-> **Verze dokumentu:** 0.28.0 (2026-03-20)
+> **Verze dokumentu:** 0.29.0 (2026-03-27)
 > **Status:** Návrh MVP
 
 ---
@@ -108,6 +108,8 @@ Poznámka: VTODO z CalDAV serverů se ignorují — FlowBlock spravuje úkoly sa
 | `title` | NonEmptyString1000 | Název (defaultně z tasku) |
 | `start` | Timestamp | Začátek bloku |
 | `end` | Timestamp | Konec bloku |
+| `buffer_before_minutes` | Int (nullable) | Per-event buffer před blokem v minutách (null = žádný) |
+| `buffer_after_minutes` | Int (nullable) | Per-event buffer po bloku v minutách (null = žádný) |
 
 ### 4.3 Calendars
 
@@ -373,7 +375,7 @@ Plánování (drag & drop, resize) zůstává na desktopu.
   bloku, progress barem a zbývajícím časem. Pod ní chronologický seznam
   dnešních bloků (vlastní = amber tečka, aktuální = červená tečka s glowem,
   externí CalDAV = šedá tečka + dashed karta). FAB tlačítko (+) vpravo dole
-  pro rychlé přidání úkolu.
+  pro rychlé přidání úkolu nebo podržením pro vytvoření time-bloku (viz níže).
 
 **Kapacitní lišty** — zobrazeny pod topbarem, nad obsahem tabu (stejná
 podoba jako sekce 5.7, ale pro aktuální den).
@@ -382,10 +384,71 @@ podoba jako sekce 5.7, ale pro aktuální den).
 Enter nebo tlačítko "Přidat" uloží úkol do inboxu. Tap mimo sheet zavře
 bez uložení.
 
-**Co mobilní verze neobsahuje:** týdenní pohled, drag & drop plánování,
+**Co mobilní verze neobsahuje:** týdenní pohled, interaktivní drag & drop plánování,
 resize time-bloků, dashboard s projekty.
 
 > **TBD:** Detailní specifikace mobilního inboxu (komponenty, pořadí položek, touch interakce) bude doplněna samostatně.
+
+#### 5.8.1 Long-press FAB — vytvoření time-bloku z mobilu
+
+FAB tlačítko (+) v tabu "Dnes" reaguje na dva typy interakce:
+
+- **Krátký tap** — stávající chování: otevře QuickAddSheet pro task nebo poznámku
+- **Long-press (500 ms)** — otevře kontextové menu se dvěma volbami:
+  - "Přidat úkol" — stejné chování jako krátký tap (QuickAddSheet)
+  - "Nový timeblock" — spustí TimeBlock creation sheet (viz níže)
+
+Haptický feedback při aktivaci long-press (lehká vibrace ~50 ms).
+
+**TimeBlock creation sheet:**
+
+Bottom sheet s formulářem pro vytvoření nového time-bloku. Pole jsou seřazena v tomto pořadí:
+
+1. **Název bloku** — text input, autofocus, placeholder "Co budeš dělat?"
+2. **Den** — date picker pill, výchozí hodnota "Dnes"
+3. **Od** — time input, výchozí hodnota: nejbližší volný slot od aktuálního času (zaokrouhleno na 15 min snap)
+4. **Do** — time input, výchozí hodnota: Od + 30 minut
+5. **Propojit úkol** — volitelná sekce, ve výchozím stavu sbalená; tap ji rozbalí a zobrazí search/select z inboxu
+
+**Živý náhled:**
+
+V horní části sheetu se zobrazuje kompaktní preview karta bloku — aktualizuje se v reálném čase při psaní názvu a výběru času. Karta zobrazuje: barevný pruh priority (výchozí šedá = none), název bloku, čas od–do, délku bloku v minutách. Plní funkci vizuální zpětné vazby před potvrzením.
+
+**Uložení:** Tlačítko "Přidat" nebo Ctrl+Enter (viz sekce 5.17) vytvoří TimeBlock a zavře sheet. Blok se okamžitě objeví v chronologickém seznamu tabu "Dnes". Tap mimo sheet zavře bez uložení.
+
+#### 5.8.2 Rutinní overlay v tabu "Dnes"
+
+Rutinní overlay je volitelná vizuální vrstva nad chronologickým seznamem tabu "Dnes". Zobrazuje se pouze pokud má uživatel alespoň jednu aktivní rutinu (RecurringTemplate, viz sekce 10). Pokud žádná rutina neexistuje, tab "Dnes" funguje beze změny.
+
+**Struktura vrstev:**
+
+Tab "Dnes" obsahuje dvě vizuální vrstvy:
+
+- **Spodní vrstva** — stávající chronologický seznam time-bloků a externích eventů
+- **Horní vrstva** — rutinní overlay: scrollovatelný panel s dnešními rutinními úkoly kotven ke spodnímu okraji obrazovky (nad bottom navigation bar)
+
+**Gesture model — drag handle:**
+
+Výška overlaye se mění tažením drag handle — tenká lišta s vizuálním indikátorem uprostřed umístěná na horním okraji overlaye. Overlay se přichycuje ke třem snap pointům:
+
+- **Peek (výchozí stav)** — overlay zabírá přibližně dolních 40 % obrazovky; chronologický seznam je viditelný v horních 60 %
+- **Focus mode** — overlay pokrývá celou obrazovku (cca 96 % výšky); chronologický seznam je schován za overlayem; nahoře zůstává viditelný tenký proužek (4 %) jako vizuální připomínka kontextu
+- **Zavřeno** — overlay je stažen ke spodnímu okraji; viditelná zůstává pouze tenká lišta (24 px) se jménem dnešní rutiny a drag handle; tap na tuto lištu overlay opět otevře do peek stavu
+
+Přechody mezi snap pointy jsou plynulé (spring animace). Haptický feedback při přichycení k snap pointu.
+
+Stav výšky overlaye se **neukládá** mezi relacemi — při každém otevření aplikace začíná v peek stavu (pokud existují aktivní rutiny).
+
+**Obsah overlaye:**
+
+- **Header** — název dnešní rutiny nebo "Dnešní rutina"; ikonka pro přechod do nastavení rutin (vedlejší akce)
+- **Seznam rutinních úkolů** — každý úkol má: checkbox, název, volitelný preferovaný čas (z RecurringTemplate), pill s energetickou náročností
+- **Hotové úkoly** — přesunou se na konec seznamu s přeškrtnutím; okamžitě se neschovávají (satisfying vizuál)
+- Scroll uvnitř overlaye funguje nezávisle od drag gestura na handle
+
+**Vztah k time-blokům:**
+
+Rutinní overlay a chronologický seznam time-bloků jsou nezávislé zobrazení — overlay není alternativní pohled na time-blocky, ale samostatný checklist rutiny. Propojení rutinních úkolů s time-blocky není součástí MVP.
 
 ### 5.9 Nastavení
 
@@ -471,6 +534,8 @@ Sekce denní kapacita bude doplněna postupně.
 - **Zkratkové hinty** — toggle (default = zapnuto)
   - Pokud zapnuto: u tlačítek v popovert se zobrazují malé klávesové zkratky (např. `Del` u tlačítka Smazat, `Ctrl+↵` u tlačítka Hotovo)
   - Ukládá se do localStorage (`flowblock_shortcut_hints`)
+
+**Per-event transition buffer** (viz také sekce 5.13 a datový model 4.2) — individuální buffer čas pro konkrétní time-blok; nezávislý na globálním nastavení "Přestávka mezi bloky".
 
 ### 5.10 Sync tlačítko v Headeru
 
@@ -643,6 +708,28 @@ Tab flow v popovert zahrnuje search input: Priorita → Search input → Hotovo
 Zobrazí se název přiřazeného tasku se dvěma akcemi:
 - Tlačítko "Změnit" — zobrazí search input pro přiřazení jiného tasku
 - Tlačítko "Odpojit" — odstraní vazbu; task se vrátí do stavu `inbox`
+
+#### Per-event transition buffer
+
+Volitelná sekce v detail popovert pro nastavení buffer zón před nebo po konkrétním bloku. Ve výchozím stavu je sbalená — zobrazí se pouze řádek "Přestávka" s ikonou a textem "Nepřidána". Klik nebo tap na tento řádek sekci rozbalí (progresivní disclosure — nezvyšuje tření při běžném vytváření bloku).
+
+**Rozbalená sekce obsahuje dva řádky:**
+- **Před blokem** — step selector: `Žádná` / `5 min` / `10 min` / `15 min` / `20 min` / `30 min`
+- **Po bloku** — stejné hodnoty
+
+Výchozí hodnota obou je `Žádná`. Uložení probíhá spolu s ostatními změnami (tlačítko "Hotovo" nebo Ctrl+Enter).
+
+**Vizuální reprezentace v timeline (desktop):**
+
+Buffer se zobrazuje jako poloprůhledná šrafovaná zóna bezprostředně před nebo za blokem. Zóna má stejnou šířku jako blok, výška odpovídá délce bufferu v 15min mřížce. Zóna nemá label ani interaktivní prvky — slouží výhradně jako vizuální prostor.
+
+Na buffer zóně nelze umístit jiný time-block. Při drag & drop a resize se ostatní bloky chovají k buffer zóně jako k obsazenému času.
+
+**Vztah ke globálnímu bufferu:**
+
+Per-event buffer a globální "Přestávka mezi bloky" (sekce 5.9) jsou nezávislé. Pokud blok má per-event buffer nastavený a zároveň existuje globální buffer, zobrazí se větší z obou hodnot (ne součet) — aby nedocházelo k neočekávaně velkým mezerám.
+
+Datový model: sloupce `buffer_before_minutes` a `buffer_after_minutes` v tabulce TimeBlocks (viz sekce 4.2).
 
 ### 5.13.1 Time input — segmentovaný vstup
 
@@ -817,6 +904,19 @@ Výchozí režim inputu je poznámka. Pokud text začíná prefixem `//`, vstup 
 - Prefix `//` se do obsahu tasku neukládá — ukládá se jen text za ním
 - Prázdný text (nebo pouze `//`) se neuloží — stejné chování jako u prázdného vstupu
 
+**Ctrl+Enter — uložit a otevřít detail:**
+
+- **Při aktivním prefixu `//` (task):** Ctrl+Enter uloží task do inboxu a okamžitě otevře jeho detail popover pro doplnění dalších atributů (priorita, energie, termín, popis). Fokus přejde na první pole popoveru.
+- **Bez prefixu (poznámka):** Ctrl+Enter se chová identicky jako Enter — uloží poznámku. Poznámky nemají detail popover v MVP; zkratka tedy nevede k chybě ani zmatení, jen nesimuluje otevření detailu.
+
+Tato zkratka je kontextově oddělena od `Ctrl+Enter` v detail popovert bloku (kde znamená "Uložit a zavřít") — kontexty jsou vzájemně exkluzivní.
+
+**Hint text v inputu:**
+
+Hint vpravo uvnitř inputu se mění dle kontextu (zobrazuje se pouze pokud je input neprázdný):
+- Výchozí stav (poznámka): `Enter →`
+- Při aktivním `//` (task): `Enter → uložit  Ctrl+Enter → uložit + detail`
+
 #### Co se s poznámkami děje dál
 
 MVP fáze: poznámky se ukládají do DB, ale zatím se v UI nezobrazují — funkce pro prohlížení a zpracování poznámek je budoucí feature. Datový model (`converted_task_id`, status `reviewed`) je připraven pro pozdější Review mode (viz sekce 14).
@@ -918,6 +1018,7 @@ Sekce jsou seřazeny podle frekvence použití:
 |---|---|
 | Přidat nový úkol | Enter |
 | Přidat poznámku místo úkolu | `//` + Enter |
+| Přidat úkol a otevřít detail rovnou | `//` + Ctrl+Enter |
 | Editovat úkol inline | klik na název |
 | Nastavit prioritu úkolu | ikona vlajky |
 | Naplánovat úkol | drag do kalendáře |
@@ -952,6 +1053,19 @@ Sekce jsou seřazeny podle frekvence použití:
 #### Footer
 
 Privacy poznámka: "Data jsou uložena lokálně v tvém prohlížeči. Sync mezi zařízeními lze zapnout v Nastavení."
+
+---
+
+### 5.17 Klávesové zkratky — TimeBlock creation sheet (mobil)
+
+Klávesové zkratky v TimeBlock creation sheetu (viz sekce 5.8.1) jsou konzistentní s desktopovým popovert kde je to možné:
+
+| Akce | Zkratka |
+|---|---|
+| Uložit a zavřít sheet | Ctrl+Enter |
+| Zavřít bez uložení | Esc |
+
+`Ctrl+Enter` zde plní stejnou roli jako v detail popovert bloku (sekce 5.13) — "potvrdit a zavřít". Tato konzistence snižuje kognitivní zátěž při přechodu mezi zařízeními.
 
 ---
 
