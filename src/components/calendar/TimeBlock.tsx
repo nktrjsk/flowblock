@@ -232,7 +232,7 @@ export default function TimeBlock({
         }}
         data-block="true"
         data-block-id={String(id)}
-        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(activeDrag.payload?.type !== "timeblock"); }}
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false); }}
         onDrop={() => setIsDragOver(false)}
         className={`rounded-sm cursor-pointer select-none group overflow-visible transition-[box-shadow] ${isDragOver ? "ring-2 ring-ink/40" : ""}`}
