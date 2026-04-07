@@ -1199,33 +1199,70 @@ Efekt: projekty, na které se dlouho nesáhlo, se přirozeně vyplaví na povrch
 
 ---
 
-## 10. Budoucí feature: Rutiny / opakující se úkoly
+## 10. Recurring Blocks (opakující se TimeBlocky)
 
 ### Problém
 
-ADHD mozek potřebuje strukturu víc než neurotypický, protože si ji nedokáže vytvořit sám. Existující řešení (Habitica, Streaks...) používají streak-based systém, který je pro ADHD toxický: přerušíš streak → stud → vyhýbání se appce → konec. Rigidní denní povinnosti jsou demotivující.
+ADHD mozek potřebuje strukturu, ale streak-based systémy jsou toxické: přerušíš streak → stud → vyhýbání se appce → konec.
 
-### Navrhované řešení: Šablony dne
+### Řešení: opakující se bloky bez závazků
 
-Rutiny jako předvyplněné šablony, ne jako povinnosti:
+- **RecurringTemplate** — šablona definující opakující se TimeBlock (např. "Cvičení", "Standup")
+- Každý den se ze šablon automaticky generují TimeBlocky pro aktuální den + 6 dní dopředu
+- Bloky jsou **odmítnutelné jedním klikem** bez trestu — smazání = výjimka pro daný den, šablona zůstává aktivní
+- Žádný streak counter, žádné "3/7 dní tento týden"
 
-- **RecurringTemplate** — nová entita definující opakující se blok (např. "Ranní rutina", "Cvičení", "Review inboxu")
-- Šablona má: název, výchozí délku, frekvenci (denně / konkrétní dny), preferovaný čas
-- Každý den se z šablon automaticky vygenerují TimeBlocky, ale ty jsou **plně editovatelné** — uživatel je může posunout, zkrátit, nebo smazat bez jakéhokoliv trestu
-- **Žádný streak counter**, žádné "3/7 dní tento týden"
-- Volitelná jemná vizualizace typu "tohle děláš posledních X dní" — informativní, ne hodnotící
+### Vizuální odlišení
 
-### Datový model (koncept)
+- **Dashed border** + **ikona `Repeat`** (Lucide, 10px, pravý horní roh)
+- Barva pozadí a priority pruh zůstávají stejné
 
+### Pevná vs. flexibilní šablona
+
+- **Pevná** — blok se generuje vždy do `preferred_time`
+- **Flexibilní** — systém hledá nejbližší volný slot (max ±120 min, po 15min krocích); pokud nenajde, generuje jako kolizi
+
+### Vytvoření
+
+Kontextová akce **"Opakovat tento blok"** v detail popovert TimeBlocku:
+1. Výběr frekvence: `Každý den` / `Prac. dny` / `Vlastní` (výběr dní v týdnu)
+2. `Pevný čas` nebo `Flexibilní`
+3. Potvrzení → šablona se vytvoří, blok se napojí na šablonu
+
+### Správa šablon
+
+Uživatel může šablony procházet, deaktivovat a mazat v Nastavení. Deaktivace zastaví budoucí generování, existující bloky zůstanou. Akce **"Zastavit trvale"** v detail popovert deaktivuje šablonu, smaže budoucí bloky a odlinkuje aktuální blok.
+
+### Smazání jednotlivého bloku
+
+Smazání = výjimka pro daný den; šablona zůstává aktivní.
+
+### Datový model
+
+#### RecurringTemplate (nová tabulka)
 | Sloupec | Typ | Popis |
 |---|---|---|
-| `id` | Evolu ID | Primární klíč |
-| `title` | NonEmptyString1000 | Název rutiny |
-| `duration_minutes` | Int | Výchozí délka |
+| `id` | Evolu ID | PK |
+| `title` | NonEmptyString1000 | Název |
+| `duration_minutes` | PositiveInt | Délka v minutách |
 | `recurrence` | `daily` \| `weekdays` \| `custom` | Frekvence |
-| `recurrence_days` | Int[] (nullable) | Konkrétní dny (0=Po, 6=Ne) pro `custom` |
-| `preferred_time` | Time (nullable) | Preferovaný čas v dni |
-| `active` | Boolean | Zda se šablona aktivně generuje |
+| `recurrence_days` | String (nullable) | JSON pole dní 0–6 (0=Po) pro `custom` |
+| `preferred_time` | NonEmptyString100 (nullable) | Preferovaný čas "HH:MM" |
+| `is_fixed_time` | SqliteBoolean | Pevná vs. flexibilní |
+| `energy` | NonEmptyString100 | `normal` \| `lite` \| `draining` |
+| `active` | SqliteBoolean | Zda se šablona generuje |
+| `source_calendar_id` | CalendarId (nullable) | Pro živý odkaz na ExternalEvent |
+| `source_event_uid` | String (nullable) | UID z iCalendar pro živý odkaz |
+
+#### Rozšíření TimeBlock
+| Sloupec | Typ | Popis |
+|---|---|---|
+| `recurring_template_id` | RecurringTemplateId (nullable) | null = ručně vytvořený nebo odlinkovaný blok |
+| `completed` | SqliteBoolean (nullable) | Rezervováno pro Routines feature |
+
+### Vztah k RRULE
+
+`RecurringTemplate` je vlastní FlowBlock entita, nesouvisí s RRULE v iCalendar standardu.
 
 ---
 
