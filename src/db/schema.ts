@@ -16,6 +16,9 @@ export type ExternalEventId = typeof ExternalEventId.Type;
 export const NoteId = Evolu.id("Note");
 export type NoteId = typeof NoteId.Type;
 
+export const RecurringTemplateId = Evolu.id("RecurringTemplate");
+export type RecurringTemplateId = typeof RecurringTemplateId.Type;
+
 // --- Domain types ---
 // Status: "inbox" | "planned" | "done" | "someday"
 // Priority: "none" | "low" | "medium" | "high"
@@ -47,6 +50,8 @@ export const Database = {
     end: Evolu.NonEmptyString100,
     // "none" | "low" | "medium" | "high" — block-level priority, overrides task priority
     priority: Evolu.nullOr(Evolu.NonEmptyString100),
+    recurring_template_id: Evolu.nullOr(RecurringTemplateId),
+    completed: Evolu.nullOr(Evolu.SqliteBoolean),
   },
   calendar: {
     id: CalendarId,
@@ -69,6 +74,25 @@ export const Database = {
     start: Evolu.NonEmptyString100,
     end: Evolu.NonEmptyString100,
     is_all_day: Evolu.SqliteBoolean,
+  },
+  recurringTemplate: {
+    id: RecurringTemplateId,
+    title: Evolu.NonEmptyString1000,
+    duration_minutes: Evolu.PositiveInt,
+    // "daily" | "weekdays" | "custom"
+    recurrence: Evolu.NonEmptyString100,
+    // JSON array of ints 0–6 (0=Mon, 6=Sun), used when recurrence = "custom"
+    recurrence_days: Evolu.nullOr(Evolu.String1000),
+    // "HH:MM" local time, used as fallback when live link has no event
+    preferred_time: Evolu.nullOr(Evolu.NonEmptyString100),
+    // true = fixed slot, false = flexible (find nearest free slot)
+    is_fixed_time: Evolu.SqliteBoolean,
+    // "normal" | "lite" | "draining"
+    energy: Evolu.NonEmptyString100,
+    active: Evolu.SqliteBoolean,
+    // Live link to an ExternalEvent (optional)
+    source_calendar_id: Evolu.nullOr(CalendarId),
+    source_event_uid: Evolu.nullOr(Evolu.NonEmptyString1000),
   },
   note: {
     id: NoteId,
