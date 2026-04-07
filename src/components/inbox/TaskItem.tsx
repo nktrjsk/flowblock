@@ -6,6 +6,7 @@ import { TaskId } from "../../db/schema";
 import { Priority, DRAG_DATA_KEY, DragPayload, activeDrag } from "../../constants";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
 import { useToast } from "../ui/Toast";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import * as Evolu from "@evolu/common";
 
 interface TaskItemProps {
@@ -27,6 +28,7 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
   const { update } = useEvolu();
   const toast = useToast();
 
+  const isMobile = useIsMobile();
   const priorityColors = usePriorityColors();
   const prio = (priority ?? "none") as Priority;
   const colors = priorityColors[prio] ?? priorityColors.none;
@@ -131,9 +133,9 @@ export default function TaskItem({ id, title, priority, status, energy, waitingF
 
   return (
     <div
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+      draggable={!isMobile}
+      onDragStart={isMobile ? undefined : handleDragStart}
+      onDragEnd={isMobile ? undefined : handleDragEnd}
       className={`relative flex items-center gap-2 pl-4 pr-3 py-2.5 rounded-lg hover:bg-ink/5 group cursor-grab active:cursor-grabbing ${waitingFor != null ? "opacity-60" : ""}`}
     >
       {/* Priority bar — vertical strip on left edge */}
