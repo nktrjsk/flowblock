@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { flushSync } from "react-dom";
-import { GripVertical, ListTodo } from "lucide-react";
+import { GripVertical, ListTodo, Repeat } from "lucide-react";
 import { useEvolu } from "../../db/evolu";
-import { TimeBlockId, TaskId } from "../../db/schema";
+import { TimeBlockId, TaskId, RecurringTemplateId } from "../../db/schema";
 import {
   Priority,
   DRAG_DATA_KEY,
@@ -23,6 +23,7 @@ interface TimeBlockProps {
   priority: string | null;
   startMinutes: number;
   durationMinutes: number;
+  recurringTemplateId?: RecurringTemplateId | null;
 }
 
 
@@ -41,6 +42,7 @@ interface TimeBlockComponentProps extends TimeBlockProps {
   totalCols?: number;
   onResizeChange?: (id: string, liveStart: number | null, liveEnd: number | null) => void;
   autoOpen?: boolean;
+  recurringTemplateId?: RecurringTemplateId | null;
 }
 
 export default function TimeBlock({
@@ -56,6 +58,7 @@ export default function TimeBlock({
   totalCols = 1,
   onResizeChange,
   autoOpen,
+  recurringTemplateId,
 }: TimeBlockComponentProps) {
   const [liveResize, setLiveResize] = useState<{
     startMinutes: number;
@@ -218,7 +221,13 @@ export default function TimeBlock({
           width: `calc(${(1 / totalCols) * 100}% - 4px)`,
           height,
           zIndex: 10,
-          ...(taskId
+          ...(recurringTemplateId
+            ? {
+                backgroundColor: colors.bg,
+                border: `1.5px dashed ${colors.border}`,
+                color: colors.text,
+              }
+            : taskId
             ? {
                 backgroundColor: colors.bg,
                 borderLeft: `3px solid ${colors.border}`,
@@ -253,6 +262,7 @@ export default function TimeBlock({
               {formatMinutes(displayStart, timeFormat)}–{formatMinutes(endMinutes, timeFormat)}
             </span>
             {taskId && <ListTodo size={18} className="opacity-60 shrink-0" />}
+            {recurringTemplateId && <Repeat size={10} className="opacity-50 shrink-0" />}
           </div>
           <span className={`text-xs leading-tight mt-0.5 truncate ${taskId ? "font-medium" : "font-normal opacity-70"}`}>
             {taskId && taskTitle ? taskTitle : title}
@@ -281,6 +291,7 @@ export default function TimeBlock({
           dayDate={dayDate}
           anchorPos={anchorPos}
           onClose={() => setPopoverOpen(false)}
+          recurringTemplateId={recurringTemplateId}
         />
       )}
     </>

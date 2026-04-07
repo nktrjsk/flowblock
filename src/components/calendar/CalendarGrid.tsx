@@ -27,7 +27,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const timeBlocksQuery = evolu.createQuery((db) =>
   db
     .selectFrom("timeBlock")
-    .select(["id", "task_id", "title", "start", "end", "priority"])
+    .select(["id", "task_id", "title", "start", "end", "priority", "recurring_template_id"])
     .where("isDeleted", "is", null)
     .orderBy("start", "asc"),
 );
@@ -628,6 +628,7 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
                     title={block.title ?? ""}
                     priority={block.priority}
                     taskTitle={block.taskTitle}
+                    recurringTemplateId={block.recurring_template_id ?? null}
                     startMinutes={block.startMinutes}
                     durationMinutes={block.durationMinutes}
                     dayDate={block.dayDate}
