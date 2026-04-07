@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { RefreshCw, Pencil, X } from "lucide-react";
+import { RefreshCw, Pencil, X, Repeat } from "lucide-react";
 import { Mnemonic } from "@evolu/common";
 import * as Evolu from "@evolu/common";
 import { useQuerySubscription } from "@evolu/react";
 import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/evolu";
-import { CalendarId } from "../../db/schema";
+import { CalendarId, RecurringTemplateId } from "../../db/schema";
 import { syncCalendar, getCorsProxy, setCorsProxy } from "../../services/calendarSync";
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
 import { NOTIFICATIONS_ENABLED_KEY, SHORTCUT_HINTS_KEY, SYNC_ENABLED_KEY } from "../../constants";
+import { triggerRoutineGeneration, deleteFutureBlocksForTemplate } from "../../hooks/useRoutineGenerator";
 import { useToast } from "../ui/Toast";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -26,6 +27,28 @@ const calendarsQuery = evolu.createQuery((db) =>
     .orderBy("display_name", "asc"),
 );
 evolu.loadQuery(calendarsQuery);
+
+const recurringTemplatesQuery = evolu.createQuery((db) =>
+  db
+    .selectFrom("recurringTemplate")
+    .select(["id", "title", "recurrence", "recurrence_days", "preferred_time", "duration_minutes", "active"])
+    .where("isDeleted", "is", null)
+    .orderBy("title", "asc"),
+);
+evolu.loadQuery(recurringTemplatesQuery);
+
+function formatRecurrence(recurrence: string | null, recurrenceDays: string | null): string {
+  if (recurrence === "daily") return "Každý den";
+  if (recurrence === "weekdays") return "Prac. dny";
+  if (recurrence === "custom" && recurrenceDays) {
+    try {
+      const days = JSON.parse(recurrenceDays) as number[];
+      const labels = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
+      return days.map((d) => labels[d]).join(", ");
+    } catch { return "Vlastní"; }
+  }
+  return "—";
+}
 
 const COLORS = ["#4f8ef7", "#e85d5d", "#4caf7a", "#e09b2f", "#9b59b6", "#1a1a2e"];
 
@@ -51,6 +74,11 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
     });
   }, []);
 
+  // Refresh recurring templates on mount (cache may be stale if modal was closed during mutations)
+  useEffect(() => {
+    evolu.loadQuery(recurringTemplatesQuery);
+  }, []);
+
   function handleCopy() {
     if (!mnemonic) return;
     navigator.clipboard.writeText(mnemonic).then(() => {
@@ -66,6 +94,9 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
   }
 
   const shortId = ownerId ? `${ownerId.slice(0, 8)}…${ownerId.slice(-4)}` : "…";
+
+  // --- Recurring templates section ---
+  const recurringTemplateRows = useQuerySubscription(recurringTemplatesQuery);
 
   // --- Calendars section ---
   const calendarRows = useQuerySubscription(calendarsQuery);
@@ -630,6 +661,50 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
                 <button onClick={resetAddForm} className="text-sm px-3 py-1.5 border border-ink/20 rounded-lg hover:bg-ink/5 transition-colors">Zrušit</button>
               </div>
             </div>
+          )}
+        </section>
+
+        {/* === Recurring Blocks section === */}
+        <section className="mt-6">
+          <h3 className="text-xs uppercase tracking-wider text-ink/40 mb-3">Recurring Blocks</h3>
+          {recurringTemplateRows.length === 0 ? (
+            <p className="text-sm text-ink/40">Žádné šablony. Vytvoř recurring block přes detail time-blocku.</p>
+          ) : (
+            <ul className="space-y-2">
+              {recurringTemplateRows.map((t) => {
+                const tid = t.id as RecurringTemplateId;
+                const isActive = (t.active as number | null) === 1;
+                const recurrenceLabel = formatRecurrence(t.recurrence as string | null, t.recurrence_days as string | null);
+                const time = t.preferred_time as string | null;
+                const dur = t.duration_minutes as number | null;
+                return (
+                  <li key={tid} className={`flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-ink/5 group ${!isActive ? "opacity-50" : ""}`}>
+                    <Repeat size={13} className="shrink-0 text-ink/40" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{t.title as string ?? "—"}</p>
+                      <p className="text-[10px] text-ink/40">
+                        {recurrenceLabel}
+                        {time ? ` · ${time}` : ""}
+                        {dur ? ` · ${dur} min` : ""}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => { update("recurringTemplate", { id: tid, active: (isActive ? 0 : 1) as Evolu.SqliteBoolean }, { onComplete: () => { evolu.loadQuery(recurringTemplatesQuery); if (!isActive) triggerRoutineGeneration(); } }); }}
+                      className="text-xs text-ink/50 hover:text-ink transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                      title={isActive ? "Vypnout" : "Zapnout"}
+                    >
+                      {isActive ? "Vypnout" : "Zapnout"}
+                    </button>
+                    <button
+                      onClick={() => { update("recurringTemplate", { id: tid, isDeleted: 1 }, { onComplete: () => { evolu.loadQuery(recurringTemplatesQuery); deleteFutureBlocksForTemplate(tid); } }); }}
+                      className="text-xs text-red-400 hover:text-red-600 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                    >
+                      Smazat
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </section>
 
