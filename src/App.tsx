@@ -13,6 +13,7 @@ import { useIsMobile } from "./hooks/useIsMobile";
 import { useCalendarSync } from "./hooks/useCalendarSync";
 import { useDayRollover } from "./hooks/useDayRollover";
 import { useBlockTransitionNotifications } from "./hooks/useBlockTransitionNotifications";
+import { useRoutineGenerator } from "./hooks/useRoutineGenerator";
 
 function getMondayOfWeek(date: Date): Date {
   const d = new Date(date);
@@ -32,6 +33,7 @@ function AppContent() {
 
   const { syncing, errors, syncNow } = useCalendarSync();
   useDayRollover();
+  useRoutineGenerator();
   useBlockTransitionNotifications();
   const prevErrorsRef = useRef<Record<string, string>>({});
 
