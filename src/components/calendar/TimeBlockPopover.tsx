@@ -112,13 +112,14 @@ export default function TimeBlockPopover({
   function handleSave() {
     if (!isValid) return;
     const trimmed = titleValue.trim();
-    if (trimmed) {
-      const r = Evolu.NonEmptyString1000.from(trimmed);
-      if (r.ok) update("timeBlock", { id, title: r.value });
-    }
-    update("timeBlock", { id, start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMin, 0)) });
-    update("timeBlock", { id, end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMin, endDayOffset)) });
-    update("timeBlock", { id, priority: Evolu.NonEmptyString100.orThrow(prioValue) });
+    const titleResult = trimmed ? Evolu.NonEmptyString1000.from(trimmed) : null;
+    update("timeBlock", {
+      id,
+      start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMin, 0)),
+      end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMin, endDayOffset)),
+      priority: Evolu.NonEmptyString100.orThrow(prioValue),
+      ...(titleResult?.ok ? { title: titleResult.value } : {}),
+    });
     onClose();
   }
 
