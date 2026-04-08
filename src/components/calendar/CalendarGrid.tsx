@@ -20,6 +20,7 @@ import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
 import { dayMinutesToIso, isoToDayMinutes } from "../../lib/time";
+import { computeCollisionLayout } from "../../lib/calendarLayout";
 
 const TIME_COLUMN_WIDTH = 48; // px
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -379,43 +380,6 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
     }
 
     return Math.max(0, planned);
-  }
-
-  function computeCollisionLayout(blocks: Array<{ id: unknown; startMinutes: number; durationMinutes: number }>): Map<string, { col: number; totalCols: number }> {
-    const result = new Map<string, { col: number; totalCols: number }>();
-    if (!blocks.length) return result;
-
-    // Sort by start time (required for correct sweepline), ID as tiebreaker for stability
-    const sorted = [...blocks].sort((a, b) =>
-      a.startMinutes !== b.startMinutes
-        ? a.startMinutes - b.startMinutes
-        : String(a.id) < String(b.id) ? -1 : 1,
-    );
-    const colEnds: number[] = [];
-    const blockColMap = new Map<string, number>();
-
-    for (const b of sorted) {
-      const end = b.startMinutes + b.durationMinutes;
-      let c = colEnds.findIndex((t) => t <= b.startMinutes);
-      if (c === -1) c = colEnds.length;
-      colEnds[c] = end;
-      blockColMap.set(String(b.id), c);
-    }
-
-    for (const b of sorted) {
-      const bEnd = b.startMinutes + b.durationMinutes;
-      let maxCol = blockColMap.get(String(b.id))!;
-      for (const other of sorted) {
-        if (String(other.id) === String(b.id)) continue;
-        const oEnd = other.startMinutes + other.durationMinutes;
-        if (b.startMinutes < oEnd && bEnd > other.startMinutes) {
-          maxCol = Math.max(maxCol, blockColMap.get(String(other.id))!);
-        }
-      }
-      result.set(String(b.id), { col: blockColMap.get(String(b.id))!, totalCols: maxCol + 1 });
-    }
-
-    return result;
   }
 
   function getBlocksForDay(dayIndex: number) {
