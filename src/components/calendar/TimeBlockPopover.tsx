@@ -10,6 +10,7 @@ import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import TimeSegmentInput from "./TimeSegmentInput";
 import type { TimeSegmentInputHandle } from "./TimeSegmentInput";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
+import { dayMinutesToIso, minutesToHHMM } from "../../lib/time";
 
 const allTasksQuery = evolu.createQuery((db) =>
   db.selectFrom("task")
@@ -36,21 +37,8 @@ interface TimeBlockPopoverProps {
   recurringTemplateId?: RecurringTemplateId | null;
 }
 
-function minutesToIso(date: Date, minutes: number, dayOffset = 0): string {
-  const d = new Date(date);
-  d.setDate(d.getDate() + dayOffset);
-  d.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
-  return d.toISOString();
-}
-
 type Recurrence = "daily" | "weekdays" | "custom";
 const DAY_LABELS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
-
-function minutesToHHMM(minutes: number): string {
-  const h = Math.floor(minutes / 60) % 24;
-  const m = minutes % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
 
 export default function TimeBlockPopover({
   id,
@@ -115,8 +103,8 @@ export default function TimeBlockPopover({
     const titleResult = trimmed ? Evolu.NonEmptyString1000.from(trimmed) : null;
     update("timeBlock", {
       id,
-      start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMin, 0)),
-      end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMin, endDayOffset)),
+      start: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, startMin, 0)),
+      end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, endMin, endDayOffset)),
       priority: Evolu.NonEmptyString100.orThrow(prioValue),
       ...(titleResult?.ok ? { title: titleResult.value } : {}),
     });

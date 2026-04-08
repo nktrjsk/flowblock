@@ -15,6 +15,7 @@ import * as Evolu from "@evolu/common";
 import TimeBlockPopover from "./TimeBlockPopover";
 import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
+import { dayMinutesToIso } from "../../lib/time";
 
 interface TimeBlockProps {
   id: TimeBlockId;
@@ -26,12 +27,6 @@ interface TimeBlockProps {
   recurringTemplateId?: RecurringTemplateId | null;
 }
 
-
-function minutesToIso(date: Date, minutes: number): string {
-  const d = new Date(date);
-  d.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
-  return d.toISOString();
-}
 
 type ResizeEdge = "top" | "bottom";
 
@@ -185,12 +180,12 @@ export default function TimeBlock({
         if (edge === "bottom") {
           update("timeBlock", {
             id,
-            end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, currentEnd)),
+            end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, currentEnd)),
           });
         } else {
           update("timeBlock", {
             id,
-            start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, currentStart)),
+            start: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, currentStart)),
           });
         }
       }

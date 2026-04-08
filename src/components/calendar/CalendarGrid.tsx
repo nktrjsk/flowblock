@@ -19,6 +19,7 @@ import * as Evolu from "@evolu/common";
 import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
+import { dayMinutesToIso, isoToDayMinutes } from "../../lib/time";
 
 const TIME_COLUMN_WIDTH = 48; // px
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -50,19 +51,6 @@ const externalEventsQuery = evolu.createQuery((db) =>
 );
 evolu.loadQuery(externalEventsQuery);
 
-function isoToMinutes(iso: string, referenceDate: Date): number {
-  const d = new Date(iso);
-  const ref = new Date(referenceDate);
-  ref.setHours(0, 0, 0, 0);
-  return Math.round((d.getTime() - ref.getTime()) / (1000 * 60));
-}
-
-function minutesToIso(date: Date, minutes: number): string {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  d.setMinutes(minutes);
-  return d.toISOString();
-}
 
 function snapMinutes(rawMinutes: number): number {
   return Math.round(rawMinutes / SNAP_MINUTES) * SNAP_MINUTES;
@@ -194,8 +182,8 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
       const result = insert("timeBlock", {
         task_id: null,
         title: Evolu.NonEmptyString1000.orThrow("Nový blok"),
-        start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMinutes)),
-        end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMinutes)),
+        start: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, startMinutes)),
+        end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, endMinutes)),
         priority: null,
       });
       if (result.ok) {
@@ -274,8 +262,8 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
       startMinutes = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
       const block = timeBlockRows.find((b) => b.id === payload.timeBlockId);
       if (block && block.start && block.end) {
-        const blockStart = isoToMinutes(block.start, days[dayIndex]);
-        const blockEnd = isoToMinutes(block.end, days[dayIndex]);
+        const blockStart = isoToDayMinutes(block.start, days[dayIndex]);
+        const blockEnd = isoToDayMinutes(block.end, days[dayIndex]);
         durationMinutes = Math.max(SNAP_MINUTES, blockEnd - blockStart);
       }
     }
@@ -322,8 +310,8 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
         insert("timeBlock", {
           task_id: payload.taskId as unknown as TaskId,
           title,
-          start: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, startMinutes)),
-          end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, endMinutes)),
+          start: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, startMinutes)),
+          end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, endMinutes)),
         });
       }
       update("task", {
@@ -337,7 +325,7 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
       const blockDurationMinutes = (new Date(block.end).getTime() - new Date(block.start).getTime()) / (1000 * 60);
       const newStartMinutes = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
       const newEndMinutes = clamp(newStartMinutes + blockDurationMinutes, SNAP_MINUTES, 24 * 60);
-      const newStartIso = minutesToIso(dayDate, newStartMinutes);
+      const newStartIso = dayMinutesToIso(dayDate, newStartMinutes);
 
       setPendingMoves((prev) => new Map(prev).set(String(payload.timeBlockId), {
         dayIndex,
@@ -349,7 +337,7 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
       update("timeBlock", {
         id: payload.timeBlockId as unknown as TimeBlockId,
         start: Evolu.NonEmptyString100.orThrow(newStartIso),
-        end: Evolu.NonEmptyString100.orThrow(minutesToIso(dayDate, newEndMinutes)),
+        end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, newEndMinutes)),
       });
     }
   }
@@ -449,8 +437,8 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
       .map((b) => {
         const task = b.task_id ? taskMap.get(b.task_id) : null;
         const pending = pendingMoves.get(String(b.id));
-        const startMins = pending ? pending.startMinutes : isoToMinutes(b.start ?? "", dayDate);
-        const durMins = pending ? pending.durationMinutes : Math.max(SNAP_MINUTES, isoToMinutes(b.end ?? "", dayDate) - isoToMinutes(b.start ?? "", dayDate));
+        const startMins = pending ? pending.startMinutes : isoToDayMinutes(b.start ?? "", dayDate);
+        const durMins = pending ? pending.durationMinutes : Math.max(SNAP_MINUTES, isoToDayMinutes(b.end ?? "", dayDate) - isoToDayMinutes(b.start ?? "", dayDate));
         return {
           ...b,
           priority: (task?.priority ?? b.priority) ?? null,
@@ -506,8 +494,8 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
         return s >= dayStart && s <= dayEnd;
       })
       .map((ev) => {
-        const startMins = isoToMinutes(ev.start ?? "", dayDate);
-        const endMins = isoToMinutes(ev.end ?? "", dayDate);
+        const startMins = isoToDayMinutes(ev.start ?? "", dayDate);
+        const endMins = isoToDayMinutes(ev.end ?? "", dayDate);
         return {
           ...ev,
           startMinutes: startMins,
