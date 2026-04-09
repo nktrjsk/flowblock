@@ -1,26 +1,23 @@
 import { useState, useRef, useEffect, Fragment } from "react";
 import { useQuerySubscription } from "@evolu/react";
-import { evolu, useEvolu } from "../../db/evolu";
-import { TaskId, TimeBlockId } from "../../db/schema";
+import { evolu } from "../../db/evolu";
 import {
   HOUR_HEIGHT_PX,
   SNAP_MINUTES,
   GRID_HEIGHT_PX,
-  DRAG_DATA_KEY,
-  DragPayload,
-  isDragPayload,
   activeDrag,
   Priority,
 } from "../../constants";
 import TimeBlockComponent from "./TimeBlock";
 import ExternalEvent from "./ExternalEvent";
 import DayCapacityBars from "./DayCapacityBars";
-import * as Evolu from "@evolu/common";
 import { useTimeFormat, formatMinutes } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
-import { dayMinutesToIso, isoToDayMinutes } from "../../lib/time";
+import { isoToDayMinutes } from "../../lib/time";
 import { computeCollisionLayout } from "../../lib/calendarLayout";
+import { useCalendarDnd } from "../../hooks/useCalendarDnd";
+import { useNewBlockDrag } from "../../hooks/useNewBlockDrag";
 
 const TIME_COLUMN_WIDTH = 48; // px
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -53,14 +50,6 @@ const externalEventsQuery = evolu.createQuery((db) =>
 evolu.loadQuery(externalEventsQuery);
 
 
-function snapMinutes(rawMinutes: number): number {
-  return Math.round(rawMinutes / SNAP_MINUTES) * SNAP_MINUTES;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
 function getNowMinutes(): number {
   const now = new Date();
   return now.getHours() * 60 + now.getMinutes();
@@ -76,7 +65,6 @@ export interface CalendarGridProps {
 }
 
 export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle = "week" }: CalendarGridProps) {
-  const { insert, update } = useEvolu();
   const { timeFormat } = useTimeFormat();
   const { effectiveTheme } = useTheme();
   const ink = effectiveTheme === "dark" ? "245,240,232" : "26,26,46";
@@ -107,36 +95,6 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
   const taskMap = new Map(taskRows.map((t) => [t.id, t]));
   const priorityColors = usePriorityColors();
 
-  // Optimistic move state — holds the new position until Evolu subscription catches up
-  const [pendingMoves, setPendingMoves] = useState<Map<string, {
-    dayIndex: number;
-    startMinutes: number;
-    durationMinutes: number;
-    startIso: string;
-  }>>(new Map());
-
-  useEffect(() => {
-    if (pendingMoves.size === 0) return;
-    setPendingMoves((prev) => {
-      const next = new Map(prev);
-      let changed = false;
-      for (const [id, pending] of prev) {
-        const block = timeBlockRows.find((b) => String(b.id) === id);
-        if (block && block.start === pending.startIso) {
-          next.delete(id);
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [timeBlockRows]);
-
-  const [ghost, setGhost] = useState<{
-    dayIndex: number;
-    startMinutes: number;
-    durationMinutes: number;
-  } | null>(null);
-
   const [resizeOverride, setResizeOverride] = useState<{
     id: string;
     startMinutes: number;
@@ -151,197 +109,21 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
     }
   }
 
-  const [pendingOpenId, setPendingOpenId] = useState<string | null>(null);
-  const [newBlockDrag, setNewBlockDrag] = useState<{
-    dayIndex: number;
-    anchorMinutes: number;
-    currentMinutes: number;
-  } | null>(null);
-  const lastClickRef = useRef<{ time: number; dayIndex: number; minutes: number } | null>(null);
-
-  useEffect(() => {
-    function onMouseMove(e: MouseEvent) {
-      if (!newBlockDrag) return;
-      const colEl = getDayColumnEl(newBlockDrag.dayIndex);
-      if (!colEl) return;
-      const rect = colEl.getBoundingClientRect();
-      const minutes = clamp(snapMinutes(((e.clientY - rect.top) / HOUR_HEIGHT_PX) * 60), 0, 24 * 60 - SNAP_MINUTES);
-      setNewBlockDrag((prev) => prev ? { ...prev, currentMinutes: minutes } : null);
-    }
-
-    function onMouseUp() {
-      if (!newBlockDrag) return;
-      const drag = newBlockDrag;
-      setNewBlockDrag(null);
-
-      const startMinutes = Math.min(drag.anchorMinutes, drag.currentMinutes);
-      const rawDuration = Math.abs(drag.currentMinutes - drag.anchorMinutes);
-      const durationMinutes = rawDuration < SNAP_MINUTES ? 60 : rawDuration;
-      const endMinutes = Math.min(startMinutes + durationMinutes, 24 * 60);
-
-      const dayDate = days[drag.dayIndex];
-      const result = insert("timeBlock", {
-        task_id: null,
-        title: Evolu.NonEmptyString1000.orThrow("Nový blok"),
-        start: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, startMinutes)),
-        end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, endMinutes)),
-        priority: null,
-      });
-      if (result.ok) {
-        setPendingOpenId(String(result.value.id));
-        setTimeout(() => setPendingOpenId(null), 500);
-      }
-    }
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newBlockDrag]);
-
-  function handleColMouseDown(e: React.MouseEvent, dayIndex: number) {
-    if (e.button !== 0) return;
-    if ((e.target as HTMLElement).closest("[data-block],[data-popover]")) return;
-    const colEl = getDayColumnEl(dayIndex);
-    if (!colEl) return;
-    const rawMinutes = ((e.clientY - colEl.getBoundingClientRect().top) / HOUR_HEIGHT_PX) * 60;
-    const minutes = clamp(Math.floor(rawMinutes / SNAP_MINUTES) * SNAP_MINUTES, 0, 24 * 60 - SNAP_MINUTES);
-
-    const now = Date.now();
-    const last = lastClickRef.current;
-    if (last && (now - last.time) < 400 && last.dayIndex === dayIndex && Math.abs(last.minutes - minutes) <= SNAP_MINUTES) {
-      lastClickRef.current = null;
-      e.preventDefault();
-      setNewBlockDrag({ dayIndex, anchorMinutes: minutes, currentMinutes: minutes });
-    } else {
-      lastClickRef.current = { time: now, dayIndex, minutes };
-    }
-  }
-
-  const newBlockGhost = newBlockDrag
-    ? {
-        dayIndex: newBlockDrag.dayIndex,
-        startMinutes: Math.min(newBlockDrag.anchorMinutes, newBlockDrag.currentMinutes),
-        durationMinutes: Math.max(SNAP_MINUTES, Math.abs(newBlockDrag.currentMinutes - newBlockDrag.anchorMinutes)),
-      }
-    : null;
-
-  function getMinutesFromEvent(e: React.DragEvent | React.MouseEvent, dayColumnEl: HTMLElement): number {
-    const rect = dayColumnEl.getBoundingClientRect();
-    return clamp(snapMinutes(((e.clientY - rect.top) / HOUR_HEIGHT_PX) * 60), 0, 24 * 60 - SNAP_MINUTES);
-  }
-
   function getDayColumnEl(dayIndex: number): HTMLElement | null {
     return gridRef.current?.querySelector(`[data-day="${dayIndex}"]`) ?? null;
   }
 
-  function handleDragOver(e: React.DragEvent, dayIndex: number) {
-    if (!e.dataTransfer.types.includes(DRAG_DATA_KEY)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+  const { ghost, pendingMoves, handleDragOver, handleDragLeave, handleDrop } = useCalendarDnd({
+    days,
+    timeBlockRows,
+    taskRows,
+    getDayColumnEl,
+  });
 
-    const colEl = getDayColumnEl(dayIndex);
-    if (!colEl) return;
-    const rawMinutes = getMinutesFromEvent(e, colEl);
-
-    // When dragging a task: hide ghost if hovering over an existing block (assign mode)
-    if (activeDrag.payload?.type === "task") {
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const overBlock = el?.closest("[data-block='true']") ?? null;
-      setGhost(overBlock ? null : { dayIndex, startMinutes: rawMinutes, durationMinutes: 60 });
-      return;
-    }
-
-    let startMinutes = rawMinutes;
-    let durationMinutes = 60;
-
-    if (activeDrag.payload?.type === "timeblock") {
-      const payload = activeDrag.payload;
-      startMinutes = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
-      const block = timeBlockRows.find((b) => b.id === payload.timeBlockId);
-      if (block && block.start && block.end) {
-        const blockStart = isoToDayMinutes(block.start, days[dayIndex]);
-        const blockEnd = isoToDayMinutes(block.end, days[dayIndex]);
-        durationMinutes = Math.max(SNAP_MINUTES, blockEnd - blockStart);
-      }
-    }
-
-    setGhost({ dayIndex, startMinutes, durationMinutes });
-  }
-
-  function handleDragLeave(e: React.DragEvent) {
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setGhost(null);
-    }
-  }
-
-  function handleDrop(e: React.DragEvent, dayIndex: number) {
-    e.preventDefault();
-    setGhost(null);
-
-    const raw = e.dataTransfer.getData(DRAG_DATA_KEY);
-    if (!raw) return;
-    let payload: DragPayload;
-    try { const p = JSON.parse(raw); if (!isDragPayload(p)) return; payload = p; } catch { return; }
-    const dayDate = days[dayIndex];
-
-    const colEl = getDayColumnEl(dayIndex);
-    if (!colEl) return;
-    const rawMinutes = getMinutesFromEvent(e, colEl);
-
-    if (payload.type === "task") {
-      const task = taskRows.find((t) => t.id === payload.taskId);
-      const targetBlockEl = (e.target as HTMLElement).closest("[data-block-id]") as HTMLElement | null;
-      const targetBlockId = targetBlockEl?.dataset.blockId ?? null;
-
-      if (targetBlockId) {
-        // Assign task to existing block — keep block's own title/priority intact
-        update("timeBlock", {
-          id: targetBlockId as unknown as TimeBlockId,
-          task_id: payload.taskId as unknown as TaskId,
-        });
-      } else {
-        // Create new block from task
-        const startMinutes = clamp(rawMinutes, 0, 24 * 60 - SNAP_MINUTES);
-        const endMinutes = clamp(startMinutes + 60, SNAP_MINUTES, 24 * 60);
-        const title = (task?.title ?? null) ?? Evolu.NonEmptyString1000.orThrow("Nový blok");
-        insert("timeBlock", {
-          task_id: payload.taskId as unknown as TaskId,
-          title,
-          start: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, startMinutes)),
-          end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, endMinutes)),
-        });
-      }
-      update("task", {
-        id: payload.taskId as unknown as TaskId,
-        status: Evolu.NonEmptyString100.orThrow("planned"),
-      });
-    } else if (payload.type === "timeblock") {
-      const block = timeBlockRows.find((b) => b.id === payload.timeBlockId);
-      if (!block || !block.start || !block.end) return;
-
-      const blockDurationMinutes = (new Date(block.end).getTime() - new Date(block.start).getTime()) / (1000 * 60);
-      const newStartMinutes = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
-      const newEndMinutes = clamp(newStartMinutes + blockDurationMinutes, SNAP_MINUTES, 24 * 60);
-      const newStartIso = dayMinutesToIso(dayDate, newStartMinutes);
-
-      setPendingMoves((prev) => new Map(prev).set(String(payload.timeBlockId), {
-        dayIndex,
-        startMinutes: newStartMinutes,
-        durationMinutes: newEndMinutes - newStartMinutes,
-        startIso: newStartIso,
-      }));
-
-      update("timeBlock", {
-        id: payload.timeBlockId as unknown as TimeBlockId,
-        start: Evolu.NonEmptyString100.orThrow(newStartIso),
-        end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, newEndMinutes)),
-      });
-    }
-  }
+  const { newBlockDrag, newBlockGhost, pendingOpenId, handleColMouseDown } = useNewBlockDrag({
+    days,
+    getDayColumnEl,
+  });
 
   function getPlannedMinutesForDay(dayIndex: number): number {
     const dayDate = days[dayIndex];
@@ -353,6 +135,8 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
     let planned = timeBlockRows
       .filter((b) => {
         if (!b.start) return false;
+        const pending = pendingMoves.get(String(b.id));
+        if (pending) return pending.dayIndex === dayIndex;
         const s = new Date(b.start);
         return s >= dayStart && s <= dayEnd;
       })
@@ -393,7 +177,6 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
       .filter((b) => {
         if (!b.start) return false;
         const pending = pendingMoves.get(String(b.id));
-        // If block has a pending move, show it only in the destination day
         if (pending) return pending.dayIndex === dayIndex;
         const s = new Date(b.start);
         return s >= dayStart && s <= dayEnd;
@@ -635,7 +418,7 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
                       ghostPriority = block.priority ?? null;
                     }
                   } else if (activeDrag.payload?.type === "task") {
-                    const task = taskMap.get(activeDrag.payload.taskId as TaskId);
+                    const task = taskMap.get(activeDrag.payload.taskId as never);
                     if (task) {
                       ghostTitle = task.title ?? null;
                       ghostPriority = task.priority ?? null;
