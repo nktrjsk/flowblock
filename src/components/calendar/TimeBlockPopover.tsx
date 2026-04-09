@@ -11,6 +11,8 @@ import TimeSegmentInput from "./TimeSegmentInput";
 import type { TimeSegmentInputHandle } from "./TimeSegmentInput";
 import { usePriorityColors } from "../../hooks/usePriorityColors";
 import { dayMinutesToIso, minutesToHHMM } from "../../lib/time";
+import { deleteTimeBlock } from "../../services/timeBlocks";
+import { setTaskStatus } from "../../services/tasks";
 
 const allTasksQuery = evolu.createQuery((db) =>
   db.selectFrom("task")
@@ -138,14 +140,13 @@ export default function TimeBlockPopover({
   }, [onClose, showDeleteConfirm]);
 
   function handleDelete() {
-    update("timeBlock", { id, isDeleted: 1 });
-    if (taskId) update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
+    deleteTimeBlock(id, { resetTaskId: taskId });
     onClose();
   }
 
   function handleDisconnect() {
     update("timeBlock", { id, task_id: null });
-    if (taskId) update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
+    if (taskId) setTaskStatus(taskId, "inbox");
     onClose();
   }
 
@@ -182,10 +183,8 @@ export default function TimeBlockPopover({
       id,
       task_id: task.id,
     });
-    if (taskId && taskId !== task.id) {
-      update("task", { id: taskId, status: Evolu.NonEmptyString100.orThrow("inbox") });
-    }
-    update("task", { id: task.id, status: Evolu.NonEmptyString100.orThrow("planned") });
+    if (taskId && taskId !== task.id) setTaskStatus(taskId, "inbox");
+    setTaskStatus(task.id as TaskId, "planned");
     setShowTaskSearch(false);
     setTaskSearch("");
     onClose();

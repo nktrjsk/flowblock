@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import * as Evolu from "@evolu/common";
-import { useEvolu } from "../db/evolu";
 import { HOUR_HEIGHT_PX, SNAP_MINUTES } from "../constants";
-import { dayMinutesToIso } from "../lib/time";
+import { createTimeBlock } from "../services/timeBlocks";
 
 function snapMinutes(raw: number) {
   return Math.round(raw / SNAP_MINUTES) * SNAP_MINUTES;
@@ -17,7 +15,6 @@ interface Props {
 }
 
 export function useNewBlockDrag({ days, getDayColumnEl }: Props) {
-  const { insert } = useEvolu();
   const [pendingOpenId, setPendingOpenId] = useState<string | null>(null);
   const [newBlockDrag, setNewBlockDrag] = useState<{
     dayIndex: number;
@@ -45,15 +42,9 @@ export function useNewBlockDrag({ days, getDayColumnEl }: Props) {
       const durationMinutes = rawDuration < SNAP_MINUTES ? 60 : rawDuration;
       const endMinutes = Math.min(startMinutes + durationMinutes, 24 * 60);
 
-      const result = insert("timeBlock", {
-        task_id: null,
-        title: Evolu.NonEmptyString1000.orThrow("Nový blok"),
-        start: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(days[drag.dayIndex], startMinutes)),
-        end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(days[drag.dayIndex], endMinutes)),
-        priority: null,
-      });
+      const result = createTimeBlock(days[drag.dayIndex], startMinutes, endMinutes);
       if (result.ok) {
-        setPendingOpenId(String(result.value.id));
+        setPendingOpenId(String(result.id));
         setTimeout(() => setPendingOpenId(null), 500);
       }
     }
@@ -64,7 +55,7 @@ export function useNewBlockDrag({ days, getDayColumnEl }: Props) {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
-    // getDayColumnEl and insert are stable; newBlockDrag is the only reactive dep
+    // getDayColumnEl and createTimeBlock are stable; newBlockDrag is the only reactive dep
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newBlockDrag]);
 

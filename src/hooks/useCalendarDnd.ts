@@ -1,7 +1,4 @@
 import { useState, useEffect } from "react";
-import * as Evolu from "@evolu/common";
-import { useEvolu } from "../db/evolu";
-import { TimeBlockId, TaskId } from "../db/schema";
 import {
   HOUR_HEIGHT_PX,
   SNAP_MINUTES,
@@ -10,7 +7,11 @@ import {
   isDragPayload,
   activeDrag,
 } from "../constants";
-import { dayMinutesToIso, isoToDayMinutes } from "../lib/time";
+import { isoToDayMinutes } from "../lib/time";
+import { TimeBlockId, TaskId } from "../db/schema";
+import { useEvolu } from "../db/evolu";
+import { createTimeBlock, moveTimeBlock } from "../services/timeBlocks";
+import { setTaskStatus } from "../services/tasks";
 
 function snapMinutes(raw: number) {
   return Math.round(raw / SNAP_MINUTES) * SNAP_MINUTES;
@@ -43,7 +44,7 @@ interface Props {
 }
 
 export function useCalendarDnd({ days, timeBlockRows, taskRows, getDayColumnEl }: Props) {
-  const { insert, update } = useEvolu();
+  const { update } = useEvolu();
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const [pendingMoves, setPendingMoves] = useState<Map<string, PendingMove>>(new Map());
 
@@ -130,20 +131,14 @@ export function useCalendarDnd({ days, timeBlockRows, taskRows, getDayColumnEl }
           task_id: payload.taskId as unknown as TaskId,
         });
       } else {
-        const startMinutes = clamp(rawMinutes, 0, 24 * 60 - SNAP_MINUTES);
-        const endMinutes = clamp(startMinutes + 60, SNAP_MINUTES, 24 * 60);
-        const title = (task?.title as Evolu.NonEmptyString1000 | null | undefined) ?? Evolu.NonEmptyString1000.orThrow("Nový blok");
-        insert("timeBlock", {
-          task_id: payload.taskId as unknown as TaskId,
-          title,
-          start: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, startMinutes)),
-          end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, endMinutes)),
+        const startMin = clamp(rawMinutes, 0, 24 * 60 - SNAP_MINUTES);
+        const endMin = clamp(startMin + 60, SNAP_MINUTES, 24 * 60);
+        createTimeBlock(dayDate, startMin, endMin, {
+          taskId: payload.taskId as unknown as TaskId,
+          title: task?.title ? String(task.title) : undefined,
         });
       }
-      update("task", {
-        id: payload.taskId as unknown as TaskId,
-        status: Evolu.NonEmptyString100.orThrow("planned"),
-      });
+      setTaskStatus(payload.taskId as unknown as TaskId, "planned");
     } else if (payload.type === "timeblock") {
       const block = timeBlockRows.find((b) => b.id === payload.timeBlockId);
       if (!block?.start || !block?.end) return;
@@ -151,7 +146,13 @@ export function useCalendarDnd({ days, timeBlockRows, taskRows, getDayColumnEl }
       const blockDurationMinutes = (new Date(block.end).getTime() - new Date(block.start).getTime()) / 60000;
       const newStartMinutes = clamp(rawMinutes - payload.offsetMinutes, 0, 24 * 60 - SNAP_MINUTES);
       const newEndMinutes = clamp(newStartMinutes + blockDurationMinutes, SNAP_MINUTES, 24 * 60);
-      const newStartIso = dayMinutesToIso(dayDate, newStartMinutes);
+
+      const newStartIso = moveTimeBlock(
+        payload.timeBlockId as unknown as TimeBlockId,
+        dayDate,
+        newStartMinutes,
+        newEndMinutes,
+      );
 
       setPendingMoves((prev) => new Map(prev).set(String(payload.timeBlockId), {
         dayIndex,
@@ -159,12 +160,6 @@ export function useCalendarDnd({ days, timeBlockRows, taskRows, getDayColumnEl }
         durationMinutes: newEndMinutes - newStartMinutes,
         startIso: newStartIso,
       }));
-
-      update("timeBlock", {
-        id: payload.timeBlockId as unknown as TimeBlockId,
-        start: Evolu.NonEmptyString100.orThrow(newStartIso),
-        end: Evolu.NonEmptyString100.orThrow(dayMinutesToIso(dayDate, newEndMinutes)),
-      });
     }
   }
 
