@@ -1,37 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useQuerySubscription } from "@evolu/react";
-import { evolu } from "../db/evolu";
+import { timeBlocksQuery, getTodayBlocks } from "./useNowAndNext";
 import { NOTIFICATION_LEAD_MINUTES, NOTIFICATIONS_ENABLED_KEY } from "../constants";
 
 const CHECK_INTERVAL_MS = 30_000; // check every 30 seconds
-
-const timeBlocksQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("timeBlock")
-    .select(["id", "title", "start", "end"])
-    .where("isDeleted", "is", null)
-    .orderBy("start", "asc"),
-);
-evolu.loadQuery(timeBlocksQuery);
-
-type BlockRow = { id: unknown; title: unknown; start: string | null; end: string | null };
-
-function getTodayBlocks(blocks: readonly BlockRow[]) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  return blocks
-    .filter((b) => {
-      if (!b.start) return false;
-      const s = new Date(b.start);
-      return s >= today && s < tomorrow;
-    })
-    .sort((a, b) =>
-      new Date(a.start!).getTime() - new Date(b.start!).getTime(),
-    );
-}
 
 async function requestPermissionIfNeeded(): Promise<boolean> {
   if (!("Notification" in window)) return false;
