@@ -5,6 +5,7 @@ import * as Evolu from "@evolu/common";
 import { useQuerySubscription } from "@evolu/react";
 import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/evolu";
 import { RecurringTemplateId } from "../../db/schema";
+import { allRecurringTemplatesQuery } from "../../db/queries";
 import { usePreferences } from "../../hooks/usePreferences";
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
 import { NOTIFICATIONS_ENABLED_KEY, SYNC_ENABLED_KEY } from "../../constants";
@@ -19,14 +20,6 @@ interface SettingsModalProps {
   highlightSync?: boolean;
 }
 
-const recurringTemplatesQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("recurringTemplate")
-    .select(["id", "title", "recurrence", "recurrence_days", "preferred_time", "duration_minutes", "active"])
-    .where("isDeleted", "is", null)
-    .orderBy("title", "asc"),
-);
-evolu.loadQuery(recurringTemplatesQuery);
 
 function formatRecurrence(recurrence: string | null, recurrenceDays: string | null): string {
   if (recurrence === "daily") return "Každý den";
@@ -64,7 +57,7 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
 
   // Refresh recurring templates on mount (cache may be stale if modal was closed during mutations)
   useEffect(() => {
-    evolu.loadQuery(recurringTemplatesQuery);
+    evolu.loadQuery(allRecurringTemplatesQuery);
   }, []);
 
   function handleCopy() {
@@ -84,7 +77,7 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
   const shortId = ownerId ? `${ownerId.slice(0, 8)}…${ownerId.slice(-4)}` : "…";
 
   // --- Recurring templates section ---
-  const recurringTemplateRows = useQuerySubscription(recurringTemplatesQuery);
+  const recurringTemplateRows = useQuerySubscription(allRecurringTemplatesQuery);
 
   // Sync section highlight
   const syncSectionRef = useRef<HTMLElement>(null);
@@ -300,14 +293,14 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
                       </p>
                     </div>
                     <button
-                      onClick={() => { update("recurringTemplate", { id: tid, active: (isActive ? 0 : 1) as Evolu.SqliteBoolean }, { onComplete: () => { evolu.loadQuery(recurringTemplatesQuery); if (!isActive) triggerRoutineGeneration(); } }); }}
+                      onClick={() => { update("recurringTemplate", { id: tid, active: (isActive ? 0 : 1) as Evolu.SqliteBoolean }, { onComplete: () => { evolu.loadQuery(allRecurringTemplatesQuery); if (!isActive) triggerRoutineGeneration(); } }); }}
                       className="text-xs text-ink/50 hover:text-ink transition-colors shrink-0 opacity-0 group-hover:opacity-100"
                       title={isActive ? "Vypnout" : "Zapnout"}
                     >
                       {isActive ? "Vypnout" : "Zapnout"}
                     </button>
                     <button
-                      onClick={() => { update("recurringTemplate", { id: tid, isDeleted: 1 }, { onComplete: () => { evolu.loadQuery(recurringTemplatesQuery); deleteFutureBlocksForTemplate(tid); } }); }}
+                      onClick={() => { update("recurringTemplate", { id: tid, isDeleted: 1 }, { onComplete: () => { evolu.loadQuery(allRecurringTemplatesQuery); deleteFutureBlocksForTemplate(tid); } }); }}
                       className="text-xs text-red-400 hover:text-red-600 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
                     >
                       Smazat

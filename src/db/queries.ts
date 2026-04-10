@@ -23,3 +23,33 @@ export const allTimeBlocksQuery = evolu.createQuery((db) =>
     .orderBy("start", "asc"),
 );
 evolu.loadQuery(allTimeBlocksQuery);
+
+// === Tasks ===
+export const allTasksQuery = evolu.createQuery((db) =>
+  db
+    .selectFrom("task")
+    .selectAll()
+    .where("isDeleted", "is", null)
+    .orderBy("createdAt", "asc"),
+);
+evolu.loadQuery(allTasksQuery);
+
+// === Notes ===
+export const allNotesQuery = evolu.createQuery((db) =>
+  db
+    .selectFrom("note")
+    .selectAll()
+    .where("isDeleted", "is", null)
+    .orderBy("createdAt", "asc"),
+);
+evolu.loadQuery(allNotesQuery);
+
+// === Recurring templates ===
+export const allRecurringTemplatesQuery = evolu.createQuery((db) =>
+  db
+    .selectFrom("recurringTemplate")
+    .selectAll()
+    .where("isDeleted", "is", null)
+    .orderBy("title", "asc"),
+);
+evolu.loadQuery(allRecurringTemplatesQuery);

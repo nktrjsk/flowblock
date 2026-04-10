@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuerySubscription } from "@evolu/react";
-import { evolu, useEvolu } from "../../db/evolu";
+import { useEvolu } from "../../db/evolu";
 import { TaskId, TimeBlockId } from "../../db/schema";
 import { DRAG_DATA_KEY, DragPayload } from "../../constants";
+import { allTasksQuery, allNotesQuery } from "../../db/queries";
 import TaskItem from "../inbox/TaskItem";
 import NoteItem from "../inbox/NoteItem";
 import AddTaskInput from "../inbox/AddTaskInput";
@@ -12,35 +13,6 @@ import SettingsModal from "../settings/SettingsModal";
 import NowBlock from "../dashboard/NowBlock";
 import UpcomingList from "../dashboard/UpcomingList";
 import * as Evolu from "@evolu/common";
-
-const inboxTasksQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("task")
-    .select(["id", "title", "priority", "status", "energy", "waiting_for"])
-    .where("status", "=", Evolu.NonEmptyString100.orThrow("inbox"))
-    .where("isDeleted", "is", null)
-    .orderBy("createdAt", "asc"),
-);
-evolu.loadQuery(inboxTasksQuery);
-
-const doneTasksQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("task")
-    .select(["id", "title", "priority", "status", "energy", "waiting_for"])
-    .where("status", "=", Evolu.NonEmptyString100.orThrow("done"))
-    .where("isDeleted", "is", null)
-    .orderBy("updatedAt", "desc"),
-);
-evolu.loadQuery(doneTasksQuery);
-
-const notesQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("note")
-    .select(["id", "content", "status"])
-    .where("isDeleted", "is", null)
-    .orderBy("createdAt", "asc"),
-);
-evolu.loadQuery(notesQuery);
 
 export default function SidePanel() {
   const [doneOpen, setDoneOpen] = useState(false);
@@ -52,9 +24,12 @@ export default function SidePanel() {
   const [settingsHighlightSync, setSettingsHighlightSync] = useState(false);
   const { update } = useEvolu();
 
-  const inboxRows = useQuerySubscription(inboxTasksQuery);
-  const doneRows = useQuerySubscription(doneTasksQuery);
-  const allNoteRows = useQuerySubscription(notesQuery);
+  const allTaskRows = useQuerySubscription(allTasksQuery);
+  const allNoteRows = useQuerySubscription(allNotesQuery);
+  const inboxRows = allTaskRows.filter((t) => String(t.status) === "inbox");
+  const doneRows = allTaskRows
+    .filter((t) => String(t.status) === "done")
+    .sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")));
   const noteRows = allNoteRows.filter((r) => r.status === "new");
 
   function handleDragOver(e: React.DragEvent) {

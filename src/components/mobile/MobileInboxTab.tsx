@@ -1,44 +1,17 @@
 import { useState } from "react";
 import { useQuerySubscription } from "@evolu/react";
-import { evolu } from "../../db/evolu";
-import * as Evolu from "@evolu/common";
+import { allTasksQuery, allNotesQuery } from "../../db/queries";
 import TaskItem from "../inbox/TaskItem";
 import NoteItem from "../inbox/NoteItem";
 
-const inboxQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("task")
-    .select(["id", "title", "priority", "status", "energy", "waiting_for"])
-    .where("status", "=", Evolu.NonEmptyString100.orThrow("inbox"))
-    .where("isDeleted", "is", null)
-    .orderBy("createdAt", "asc"),
-);
-evolu.loadQuery(inboxQuery);
-
-const doneQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("task")
-    .select(["id", "title", "priority", "status", "energy", "waiting_for"])
-    .where("status", "=", Evolu.NonEmptyString100.orThrow("done"))
-    .where("isDeleted", "is", null)
-    .orderBy("updatedAt", "desc"),
-);
-evolu.loadQuery(doneQuery);
-
-const notesQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("note")
-    .select(["id", "content", "status"])
-    .where("isDeleted", "is", null)
-    .orderBy("createdAt", "asc"),
-);
-evolu.loadQuery(notesQuery);
-
 export default function MobileInboxTab() {
   const [doneOpen, setDoneOpen] = useState(false);
-  const inboxRows = useQuerySubscription(inboxQuery);
-  const doneRows = useQuerySubscription(doneQuery);
-  const allNoteRows = useQuerySubscription(notesQuery);
+  const allTaskRows = useQuerySubscription(allTasksQuery);
+  const allNoteRows = useQuerySubscription(allNotesQuery);
+  const inboxRows = allTaskRows.filter((t) => String(t.status) === "inbox");
+  const doneRows = allTaskRows
+    .filter((t) => String(t.status) === "done")
+    .sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")));
   const noteRows = allNoteRows.filter((r) => r.status === "new");
 
   return (
