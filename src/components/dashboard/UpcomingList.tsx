@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuerySubscription } from "@evolu/react";
-import { evolu } from "../../db/evolu";
+import { allTimeBlocksQuery } from "../../db/queries";
 import { useTimeFormat, formatIso } from "../../contexts/TimeFormatContext";
-
-const timeBlocksQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("timeBlock")
-    .select(["id", "title", "start", "end"])
-    .where("isDeleted", "is", null)
-    .orderBy("start", "asc"),
-);
-evolu.loadQuery(timeBlocksQuery);
 
 type Row = { id: string; title: string | null; start: string | null; end: string | null };
 
@@ -27,7 +18,7 @@ export default function UpcomingList() {
   const todayEnd = new Date(today);
   todayEnd.setHours(23, 59, 59, 999);
 
-  const allRows = useQuerySubscription(timeBlocksQuery) as unknown as Row[];
+  const allRows = useQuerySubscription(allTimeBlocksQuery) as unknown as Row[];
 
   const upcoming = allRows
     .filter((b) => {

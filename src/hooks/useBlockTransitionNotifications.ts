@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQuerySubscription } from "@evolu/react";
-import { timeBlocksQuery, getTodayBlocks } from "./useNowAndNext";
+import { allTimeBlocksQuery } from "../db/queries";
+import { getTodayBlocks } from "./useNowAndNext";
 import { NOTIFICATION_LEAD_MINUTES, NOTIFICATIONS_ENABLED_KEY } from "../constants";
 
 const CHECK_INTERVAL_MS = 30_000; // check every 30 seconds
@@ -19,7 +20,7 @@ function showNotification(title: string, body: string) {
 }
 
 export function useBlockTransitionNotifications() {
-  const blocks = useQuerySubscription(timeBlocksQuery);
+  const blocks = useQuerySubscription(allTimeBlocksQuery);
   const notifiedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {

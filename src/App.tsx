@@ -48,7 +48,16 @@ function AppContent() {
     prevErrorsRef.current = errors;
   }, [errors, show]);
 
-  if (evoluError) {
+  // Non-fatal Evolu errors (sync-related) — show a toast, app continues working locally
+  useEffect(() => {
+    if (!evoluError || evoluError.type === "SqliteError") return;
+    show(`Evolu sync selhal: ${evoluError.type}. Aplikace funguje lokálně.`, {
+      type: "error",
+    });
+  }, [evoluError?.type, show]);
+
+  // SqliteError means local DB is unavailable — app cannot function
+  if (evoluError?.type === "SqliteError") {
     return (
       <div className="flex h-screen items-center justify-center bg-paper text-ink/60 text-sm">
         <div className="max-w-sm text-center flex flex-col gap-3">

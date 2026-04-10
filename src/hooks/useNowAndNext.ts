@@ -1,15 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuerySubscription } from "@evolu/react";
-import { evolu } from "../db/evolu";
-
-export const timeBlocksQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("timeBlock")
-    .select(["id", "title", "start", "end"])
-    .where("isDeleted", "is", null)
-    .orderBy("start", "asc"),
-);
-evolu.loadQuery(timeBlocksQuery);
+import { allTimeBlocksQuery } from "../db/queries";
 
 export type NowNextBlock = {
   id: string;
@@ -48,7 +39,7 @@ export function useNowAndNext(): NowAndNext {
     return () => clearInterval(id);
   }, []);
 
-  const allRows = useQuerySubscription(timeBlocksQuery);
+  const allRows = useQuerySubscription(allTimeBlocksQuery);
   const todayBlocks = getTodayBlocks(allRows);
 
   const current = todayBlocks.find(
