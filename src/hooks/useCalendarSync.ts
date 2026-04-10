@@ -3,6 +3,7 @@ import { useQuerySubscription } from "@evolu/react";
 import { evolu } from "../db/evolu";
 import { syncCalendar } from "../services/calendarSync";
 import { CalendarId } from "../db/schema";
+import { usePreferences } from "./usePreferences";
 
 const ICS_POLL_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -21,13 +22,16 @@ export function useCalendarSync(): {
   syncNow: () => void;
 } {
   const calendars = useQuerySubscription(calendarsQuery);
+  const { corsProxy } = usePreferences();
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Keep a stable ref to calendars for use in interval callback
+  // Keep stable refs for use in interval callback
   const calendarsRef = useRef(calendars);
   calendarsRef.current = calendars;
+  const corsProxyRef = useRef(corsProxy);
+  corsProxyRef.current = corsProxy;
 
   const runSync = useCallback(async () => {
     const current = calendarsRef.current;
@@ -45,6 +49,7 @@ export function useCalendarSync(): {
             url: cal.url,
             username: cal.username,
             password: cal.password,
+            corsProxy: corsProxyRef.current,
           });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);

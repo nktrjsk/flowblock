@@ -19,6 +19,9 @@ export type NoteId = typeof NoteId.Type;
 export const RecurringTemplateId = Evolu.id("RecurringTemplate");
 export type RecurringTemplateId = typeof RecurringTemplateId.Type;
 
+export const PreferencesId = Evolu.id("Preferences");
+export type PreferencesId = typeof PreferencesId.Type;
+
 // --- Domain types ---
 // Status: "inbox" | "planned" | "done" | "someday"
 // Priority: "none" | "low" | "medium" | "high"
@@ -100,6 +103,15 @@ export const Database = {
     // "new" | "reviewed"
     status: Evolu.NonEmptyString100,
     converted_task_id: Evolu.nullOr(TaskId),
+  },
+  preferences: {
+    id: PreferencesId,
+    // "24h" | "12h"
+    time_format: Evolu.NonEmptyString100,
+    // 1 = show hints, 0 = hide
+    shortcut_hints: Evolu.SqliteBoolean,
+    // CORS proxy URL prefix, nullable
+    cors_proxy: Evolu.nullOr(Evolu.String1000),
   },
 } satisfies Evolu.EvoluSchema;
 

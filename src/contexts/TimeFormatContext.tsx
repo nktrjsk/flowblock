@@ -1,8 +1,7 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
+import { usePreferences } from "../hooks/usePreferences";
 
 export type TimeFormat = "24h" | "12h";
-
-export const TIME_FORMAT_KEY = "flowblock_time_format";
 
 export function formatMinutes(totalMinutes: number, format: TimeFormat): string {
   const h = Math.floor(totalMinutes / 60) % 24;
@@ -31,15 +30,7 @@ const TimeFormatContext = createContext<TimeFormatContextValue>({
 });
 
 export function TimeFormatProvider({ children }: { children: React.ReactNode }) {
-  const [timeFormat, setTimeFormatState] = useState<TimeFormat>(
-    () => (localStorage.getItem(TIME_FORMAT_KEY) as TimeFormat) ?? "24h",
-  );
-
-  function setTimeFormat(f: TimeFormat) {
-    localStorage.setItem(TIME_FORMAT_KEY, f);
-    setTimeFormatState(f);
-  }
-
+  const { timeFormat, setTimeFormat } = usePreferences();
   return (
     <TimeFormatContext.Provider value={{ timeFormat, setTimeFormat }}>
       {children}

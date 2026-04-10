@@ -58,22 +58,8 @@ function parseICALString(icsText: string): ParsedEvent[] {
   return events;
 }
 
-export const CORS_PROXY_KEY = "flowblock_cors_proxy";
-
-export function getCorsProxy(): string {
-  return localStorage.getItem(CORS_PROXY_KEY) ?? "";
-}
-
-export function setCorsProxy(value: string) {
-  if (value.trim()) {
-    localStorage.setItem(CORS_PROXY_KEY, value.trim());
-  } else {
-    localStorage.removeItem(CORS_PROXY_KEY);
-  }
-}
-
-export async function fetchICS(url: string): Promise<ParsedEvent[]> {
-  const proxy = getCorsProxy();
+export async function fetchICS(url: string, corsProxy?: string): Promise<ParsedEvent[]> {
+  const proxy = corsProxy ?? "";
   const fetchUrl = proxy ? proxy + url : url;
   let res: Response;
   try {
@@ -241,15 +227,16 @@ export interface CalendarRecord {
   url: string | null;
   username?: string | null;
   password?: string | null;
+  corsProxy?: string;
 }
 
 export async function syncCalendar(calendar: CalendarRecord): Promise<void> {
-  const { id, type, url, username, password } = calendar;
+  const { id, type, url, username, password, corsProxy } = calendar;
   if (!type || !url) throw new Error("Kalendář nemá vyplněný typ nebo URL.");
 
   let events: ParsedEvent[];
   if (type === "ics") {
-    events = await fetchICS(url);
+    events = await fetchICS(url, corsProxy);
   } else if (type === "caldav") {
     if (!username || !password) {
       throw new Error("CalDAV vyžaduje uživatelské jméno a heslo.");

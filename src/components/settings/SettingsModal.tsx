@@ -5,9 +5,9 @@ import * as Evolu from "@evolu/common";
 import { useQuerySubscription } from "@evolu/react";
 import { evolu, useEvolu, EVOLU_RELAY_KEY, DEFAULT_RELAY_URL } from "../../db/evolu";
 import { RecurringTemplateId } from "../../db/schema";
-import { getCorsProxy, setCorsProxy } from "../../services/calendarSync";
+import { usePreferences } from "../../hooks/usePreferences";
 import { requestPermissionIfNeeded } from "../../hooks/useBlockTransitionNotifications";
-import { NOTIFICATIONS_ENABLED_KEY, SHORTCUT_HINTS_KEY, SYNC_ENABLED_KEY } from "../../constants";
+import { NOTIFICATIONS_ENABLED_KEY, SYNC_ENABLED_KEY } from "../../constants";
 import { triggerRoutineGeneration, deleteFutureBlocksForTemplate } from "../../hooks/useRoutineGenerator";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -151,23 +151,19 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
     setTimeout(() => window.location.reload(), 800);
   }
 
-  const [shortcutHints, setShortcutHints] = useState(
-    () => localStorage.getItem(SHORTCUT_HINTS_KEY) !== "false",
-  );
-
-  function handleHintsToggle() {
-    const next = !shortcutHints;
-    setShortcutHints(next);
-    localStorage.setItem(SHORTCUT_HINTS_KEY, String(next));
-  }
-
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   async function handleResetData() {
     await evolu.resetAppOwner();
   }
 
-  const [corsProxy, setCorsProxyState] = useState(() => getCorsProxy());
+  const {
+    shortcutHints,
+    setShortcutHints,
+    corsProxy,
+    setCorsProxy: saveCorsProxy,
+  } = usePreferences();
+  const [corsProxyInput, setCorsProxyInput] = useState(corsProxy);
   const { timeFormat, setTimeFormat } = useTimeFormat();
   const { theme, setTheme } = useTheme();
 
@@ -379,7 +375,7 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
               <p className="text-xs text-ink/40 mt-0.5">Zobrazit klávesové zkratky u tlačítek (např. Del, Ctrl+↵).</p>
             </div>
             <button
-              onClick={handleHintsToggle}
+              onClick={() => setShortcutHints(!shortcutHints)}
               className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${shortcutHints ? "bg-ink" : "bg-ink/20"}`}
             >
               <span className={`absolute top-1 w-4 h-4 rounded-full bg-surface shadow transition-all ${shortcutHints ? "left-5" : "left-1"}`} />
@@ -489,8 +485,11 @@ export default function SettingsModal({ onClose, syncErrors, highlightSync }: Se
           <label className="block text-sm text-ink/70 mb-1">CORS proxy URL</label>
           <input
             type="url"
-            value={corsProxy}
-            onChange={(e) => { setCorsProxyState(e.target.value); setCorsProxy(e.target.value); }}
+            value={corsProxyInput}
+            onChange={(e) => {
+              setCorsProxyInput(e.target.value);
+              saveCorsProxy(e.target.value);
+            }}
             placeholder="https://corsproxy.io/?url="
             className={`${INPUT_CLS} font-mono`}
           />

@@ -3,7 +3,8 @@ import { X, Trash2, Link2, Link2Off } from "lucide-react";
 import { useEvolu, evolu } from "../../db/evolu";
 import { useQuerySubscription } from "@evolu/react";
 import { TimeBlockId, TaskId, RecurringTemplateId } from "../../db/schema";
-import { Priority, SHORTCUT_HINTS_KEY } from "../../constants";
+import { Priority } from "../../constants";
+import { usePreferences } from "../../hooks/usePreferences";
 import * as Evolu from "@evolu/common";
 import { useTimeFormat } from "../../contexts/TimeFormatContext";
 import TimeSegmentInput from "./TimeSegmentInput";
@@ -113,7 +114,7 @@ export default function TimeBlockPopover({
   const [prioFocused, setPrioFocused] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const showHints = localStorage.getItem(SHORTCUT_HINTS_KEY) !== "false";
+  const { shortcutHints: showHints } = usePreferences();
 
   const endAbsolute = form.endDayOffset * 1440 + form.endMin;
   const isValid = endAbsolute > form.startMin;
