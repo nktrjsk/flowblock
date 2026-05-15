@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useReducer } from "react";
 import { X, Trash2, Link2, Link2Off } from "lucide-react";
-import { useEvolu, evolu } from "../../db/evolu";
+import { useEvolu } from "../../db/evolu";
 import { useQuerySubscription } from "@evolu/react";
 import { TimeBlockId, TaskId, RecurringTemplateId } from "../../db/schema";
 import { Priority } from "../../constants";
@@ -14,15 +14,7 @@ import { dayMinutesToIso } from "../../lib/time";
 import { deleteTimeBlock } from "../../services/timeBlocks";
 import { setTaskStatus } from "../../services/tasks";
 import TimeBlockRepeatSection from "./TimeBlockRepeatSection";
-
-const allTasksQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("task")
-    .select(["id", "title", "status"])
-    .where("isDeleted", "is", null)
-    .orderBy("title", "asc"),
-);
-evolu.loadQuery(allTasksQuery);
+import { allTasksQuery } from "../../db/queries";
 
 const POPOVER_WIDTH = 272;
 const PRIORITIES: Priority[] = ["none", "low", "medium", "high"];

@@ -53,3 +53,13 @@ export const allRecurringTemplatesQuery = evolu.createQuery((db) =>
     .orderBy("title", "asc"),
 );
 evolu.loadQuery(allRecurringTemplatesQuery);
+
+// === External events ===
+export const allExternalEventsQuery = evolu.createQuery((db) =>
+  db
+    .selectFrom("externalEvent")
+    .selectAll()
+    .where("isDeleted", "is", null)
+    .orderBy("start", "asc"),
+);
+evolu.loadQuery(allExternalEventsQuery);

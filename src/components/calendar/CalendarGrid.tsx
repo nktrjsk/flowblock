@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, Fragment } from "react";
 import { useQuerySubscription } from "@evolu/react";
-import { evolu } from "../../db/evolu";
 import {
   HOUR_HEIGHT_PX,
   SNAP_MINUTES,
@@ -18,36 +17,10 @@ import { isoToDayMinutes } from "../../lib/time";
 import { computeCollisionLayout } from "../../lib/calendarLayout";
 import { useCalendarDnd } from "../../hooks/useCalendarDnd";
 import { useNewBlockDrag } from "../../hooks/useNewBlockDrag";
+import { allTimeBlocksQuery, allTasksQuery, allExternalEventsQuery } from "../../db/queries";
 
 const TIME_COLUMN_WIDTH = 48; // px
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-
-// Queries defined outside component — singleton pattern, pre-loaded to avoid Suspense on navigation/mutations
-const timeBlocksQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("timeBlock")
-    .select(["id", "task_id", "title", "start", "end", "priority", "recurring_template_id"])
-    .where("isDeleted", "is", null)
-    .orderBy("start", "asc"),
-);
-evolu.loadQuery(timeBlocksQuery);
-
-const tasksQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("task")
-    .select(["id", "title", "priority"])
-    .where("isDeleted", "is", null),
-);
-evolu.loadQuery(tasksQuery);
-
-const externalEventsQuery = evolu.createQuery((db) =>
-  db
-    .selectFrom("externalEvent")
-    .select(["id", "calendar_id", "title", "start", "end", "is_all_day"])
-    .where("isDeleted", "is", null)
-    .orderBy("start", "asc"),
-);
-evolu.loadQuery(externalEventsQuery);
 
 
 function getNowMinutes(): number {
@@ -89,9 +62,9 @@ export default function CalendarGrid({ days, dayLabels, todayIndex, headerStyle 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const timeBlockRows = useQuerySubscription(timeBlocksQuery);
-  const taskRows = useQuerySubscription(tasksQuery);
-  const externalEventRows = useQuerySubscription(externalEventsQuery);
+  const timeBlockRows = useQuerySubscription(allTimeBlocksQuery);
+  const taskRows = useQuerySubscription(allTasksQuery);
+  const externalEventRows = useQuerySubscription(allExternalEventsQuery);
   const taskMap = new Map(taskRows.map((t) => [t.id, t]));
   const priorityColors = usePriorityColors();
 
